@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>POS касса (офлайн) — поиск, категории, граммовка</title>
+  <style>
+    :root{--bg:#0b0c10;--card:#12141a;--muted:#9aa3b2;--text:#e9eef7;--line:#232837;--acc:#6fedd1;--danger:#ff5c5c;}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text);padding:18px}
+    .wrap{max-width:1220px;margin:0 auto;display:grid;grid-template-columns: 1.15fr .85fr;gap:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+    h1{font-size:18px;margin:0 0 12px 0;font-weight:900}
+    h2{font-size:14px;margin:12px 0 10px 0;color:var(--muted);font-weight:700}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input, button, select, textarea{
+      background:#0f1117;color:var(--text);
+      border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none
+    }
+    input:focus, textarea:focus, select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(111,237,209,.12)}
+    button{cursor:pointer}
+    button.primary{border-color:rgba(111,237,209,.45);background:rgba(111,237,209,.12)}
+    button.primary:hover{background:rgba(111,237,209,.18)}
+    button.ghost{background:transparent}
+    button.danger{border-color:rgba(255,92,92,.45);background:rgba(255,92,92,.12)}
+    button.danger:hover{background:rgba(255,92,92,.18)}
+    .muted{color:var(--muted);font-size:12px}
+    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
+    .kbd{border:1px solid var(--line);border-bottom-width:2px;padding:1px 6px;border-radius:6px;font-size:11px;color:var(--muted)}
+    .badge{color:var(--acc);font-weight:900}
+    .searchBox{position:relative;flex:1;min-width:280px}
+    .suggest{
+      position:absolute;left:0;right:0;top:46px;background:#0f1117;border:1px solid var(--line);
+      border-radius:14px;overflow:hidden;display:none;max-height:340px;overflow:auto;z-index:10
+    }
+    .suggest button{
+      width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);
+      padding:10px 12px;border-radius:0
+    }
+    .suggest button:last-child{border-bottom:0}
+    .suggest button:hover,.suggest button.active{background:rgba(111,237,209,.10)}
+    .priceTag{color:var(--acc);font-weight:900}
+    .catBar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
+    .catBtn{padding:8px 10px;border-radius:999px}
+    .catBtn.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:13px;vertical-align:middle}
+    th{color:var(--muted);font-weight:800}
+    .right{text-align:right}
+    .qty{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+    .qty button{padding:6px 10px;border-radius:10px}
+    .qty input{width:96px;text-align:right;padding:8px 10px;border-radius:10px}
+    .footerTotal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}
+    .total{font-size:22px;font-weight:1000}
+    .gridBtns{display:flex;gap:8px;flex-wrap:wrap}
+    .quickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .qbtn{padding:10px 10px;border-radius:14px}
+    .tiny{font-size:12px}
+    .split3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} .quickGrid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- LEFT -->
+    <div class="card">
+      <h1>Касса (офлайн): поиск + категории + граммовка</h1>
+
+      <div class="row">
+        <div class="searchBox">
+          <input id="search" type="text" autocomplete="off" placeholder="Пиши: «бут», «кран 7», «вобла», «квас»…" style="width:100%" />
+          <div id="suggest" class="suggest"></div>
+        </div>
+
+        <input id="qtyAdd" type="number" step="1" min="0.1" value="1" style="width:130px" />
+        <select id="qtyMode" style="width:160px">
+          <option value="auto">Авто (по товару)</option>
+          <option value="pcs">Шт</option>
+          <option value="l">Литры</option>
+          <option value="g">Граммы</option>
+        </select>
+        <button id="addBtn" class="primary">Добавить</button>
+      </div>
+
+      <div class="row" style="margin:8px 0 4px">
+        <span class="pill">Подсказки: <span class="kbd">↑</span><span class="kbd">↓</span> · <span class="kbd">Enter</span> · <span class="kbd">Esc</span></span>
+        <span class="pill">Фокус: <span class="kbd">Ctrl</span>+<span class="kbd">L</span></span>
+      </div>
+
+      <h2>Категории</h2>
+      <div id="catBar" class="catBar"></div>
+
+      <h2>Быстро (по категории)</h2>
+      <div id="quickGrid" class="quickGrid"></div>
+      <div class="muted" style="margin-top:8px">
+        * В «Краны» цены за 1 литр. В «Рыба (за кг)» вводи граммы или кг — касса посчитает.
+      </div>
+
+      <h2 style="margin-top:14px">Чек</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Позиция</th>
+            <th class="right">Цена</th>
+            <th class="right">Кол-во</th>
+            <th class="right">Сумма</th>
+            <th class="right">Удалить</th>
+          </tr>
+        </thead>
+        <tbody id="cartBody"></tbody>
+      </table>
+
+      <div class="footerTotal">
+        <div class="tiny muted">
+          <div>Позиций: <span id="itemsCount" class="badge">0</span></div>
+          <div>Единиц: <span id="unitsCount" class="badge">0</span></div>
+        </div>
+        <div class="total">Итого: <span id="grandTotal">0</span> GEL</div>
+      </div>
+
+      <div class="gridBtns" style="margin-top:12px">
+        <button id="clearBtn" class="danger">Очистить чек</button>
+        <button id="copyBtn" class="ghost">Копировать чек</button>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        Всё сохраняется локально в браузере (без интернета). Можно править/добавлять товары справа.
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+      <h2>Добавить / удалить товар</h2>
+
+      <div class="split3">
+        <input id="newName" placeholder="Название (например: Кран 25 …)" />
+        <input id="newPrice" type="number" min="0" step="0.01" placeholder="Цена (GEL)" />
+        <select id="newCat"></select>
+      </div>
+
+      <div class="split3" style="margin-top:10px">
+        <select id="newType">
+          <option value="unit">Обычное (шт)</option>
+          <option value="per_liter">Цена за 1л</option>
+          <option value="per_kg">Цена за 1кг (ввод граммов)</option>
+        </select>
+        <input id="newUnitHint" placeholder="Подсказка (например: 0.5л)" />
+        <button id="addProduct" class="primary">Добавить</button>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <select id="manageSelect" style="width:100%"></select>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="deleteSelected" class="danger">Удалить выбранный</button>
+        <button id="resetAll" class="ghost">Сбросить к твоему списку</button>
+      </div>
+
+      <h2>Экспорт / импорт</h2>
+      <div class="row">
+        <button id="saveBtn" class="ghost">Скачать товары (JSON)</button>
+        <button id="loadBtn" class="ghost">Загрузить товары (JSON)</button>
+        <input id="fileInput" type="file" accept="application/json" style="display:none" />
+      </div>
+      <div class="muted" style="margin-top:10px">
+        JSON нужен, чтобы переносить каталог на другой комп без ручного ввода.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // DEFAULT CATALOG (your list)
+    // type: unit | per_liter | per_kg
+    // =========================
+    const DEFAULT_PRODUCTS = [
+      // --- Draft taps (per liter)
+      {cat:"Краны", type:"per_liter", name:"Кран 1 — Wild brewed", price:7.20},
+      {cat:"Краны", type:"per_liter", name:"Кран 2 — HELLES Black Lion", price:7.50},
+      {cat:"Краны", type:"per_liter", name:"Кран 3 — Stout naturale", price:11.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 4 — APA SEAHORSE", price:11.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 5 — WEISS NaturAle", price:9.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 6 — TOMATO", price:14.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 7 — Triassic IPA", price:12.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 8 — English ale", price:15.50},
+      {cat:"Краны", type:"per_liter", name:"Кран 9 — Batumi", price:3.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 10 — Miss Me? IPA", price:12.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 11 — Shavi ZGVA", price:17.50},
+      {cat:"Краны", type:"per_liter", name:"Кран 12 — KUPALLE", price:9.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 13 — DIPA", price:13.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 14 — IPA Black Lion", price:9.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 15 — German Lager", price:7.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 16 — Kenkra", price:13.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 17 — Inclusion Lager", price:7.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 18 — Passion fruit", price:13.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 19 — White Sun", price:8.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 20 — BLACK Shavi Lomi", price:9.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 21 — IPA Naturale", price:10.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 22 — Jujuna", price:17.90},
+      {cat:"Краны", type:"per_liter", name:"Кран 23 — Tavkveri Qvevri Petnat Red", price:13.60},
+      {cat:"Краны", type:"per_liter", name:"Кран 24 — Otsneba SOUR", price:17.50},
+
+      // --- Bottles / cups (fees)
+      {cat:"Тара", type:"unit", name:"Бутылка 0.5л", price:0.40, unitHint:"шт"},
+      {cat:"Тара", type:"unit", name:"Бутылка 1л", price:0.40, unitHint:"шт"},
+      {cat:"Тара", type:"unit", name:"Бутылка 2л", price:0.50, unitHint:"шт"},
+      {cat:"Тара", type:"unit", name:"0.5 стакан", price:0.10, unitHint:"шт"},
+      {cat:"Тара", type:"unit", name:"Стакан на вынос", price:0.50, unitHint:"шт"},
+
+      // --- Snacks (unit)
+      {cat:"Закуски", type:"unit", name:"Big bob", price:2.40},
+      {cat:"Закуски", type:"unit", name:"Mega Chips", price:2.90},
+      {cat:"Закуски", type:"unit", name:"Flint", price:1.90},
+      {cat:"Закуски", type:"unit", name:"Bulba Chips", price:3.10},
+      {cat:"Закуски", type:"unit", name:"Bulba Sticks", price:2.90},
+      {cat:"Закуски", type:"unit", name:"Джерки курица", price:12.90},
+      {cat:"Закуски", type:"unit", name:"Джерки свинина", price:13.90},
+      {cat:"Закуски", type:"unit", name:"Колбаски/Кабанос", price:7.90},
+      {cat:"Закуски", type:"unit", name:"Сырные палочки", price:7.90},
+      {cat:"Закуски", type:"unit", name:"Сыр тонкий", price:1.90},
+      {cat:"Закуски", type:"unit", name:"Кальмар 100г", price:16.00},
+      {cat:"Закуски", type:"unit", name:"С перцем 100г", price:9.00},
+      {cat:"Закуски", type:"unit", name:"Спинка 100г", price:13.00},
+      {cat:"Закуски", type:"unit", name:"Желтый полосатик", price:13.00},
+
+      // --- Fish (per kg)
+      {cat:"Рыба (за кг)", type:"per_kg", name:"Вобла", price:88.00, unitHint:"цена за 1кг"},
+      {cat:"Рыба (за кг)", type:"per_kg", name:"Щука", price:73.00, unitHint:"цена за 1кг"},
+      {cat:"Рыба (за кг)", type:"per_kg", name:"Судак", price:73.00, unitHint:"цена за 1кг"},
+      {cat:"Рыба (за кг)", type:"per_kg", name:"Лещ", price:53.00, unitHint:"цена за 1кг"},
+      {cat:"Рыба (за кг)", type:"per_kg", name:"Толстолобик", price:53.00, unitHint:"цена за 1кг"},
+
+      // --- Bottled beer (unit)
+      {cat:"Пиво в бутылках", type:"unit", name:"Феникс / Phoenix", price:7.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Майстра", price:4.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Индия IPA", price:7.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Panacea 0%", price:10.00},
+      {cat:"Пиво в бутылках", type:"unit", name:"Лидское 0% Пшеничка", price:3.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Лидское 0%", price:3.70},
+      {cat:"Пиво в бутылках", type:"unit", name:"White Sun", price:7.60},
+      {cat:"Пиво в бутылках", type:"unit", name:"Will Wheel", price:10.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Splinter DIPA", price:12.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Power Inside", price:12.40},
+      {cat:"Пиво в бутылках", type:"unit", name:"DIPA Dry Hopped", price:13.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Green Cape IPA", price:11.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"NeIPA", price:13.00},
+      {cat:"Пиво в бутылках", type:"unit", name:"Shkhara", price:13.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Let's Dnce", price:9.40},
+      {cat:"Пиво в бутылках", type:"unit", name:"Dragon COLD IPA", price:10.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Альвария", price:3.60},
+      {cat:"Пиво в бутылках", type:"unit", name:"Коронет", price:4.30},
+      {cat:"Пиво в бутылках", type:"unit", name:"Mirror Pale Ale", price:10.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Megobrebi The hunter", price:8.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Three Knight Pale Ale", price:9.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Хинкали", price:13.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Мексика Томатка", price:13.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Томат Гозе", price:11.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Tiflis Night Megobrebi", price:8.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Dark Side English Stout", price:8.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Gonchar Sweet Stout", price:10.90},
+      {cat:"Пиво в бутылках", type:"unit", name:"Лидское Ясен-Квасен", price:4.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"Вишня Чери / Cherry", price:12.50},
+      {cat:"Пиво в бутылках", type:"unit", name:"ShaviZgva", price:13.50},
+
+      // --- Soft drinks
+      {cat:"Безалкогольные", type:"unit", name:"Квас Лидский", price:3.80},
+      {cat:"Безалкогольные", type:"unit", name:"DYNAMIT энергетик", price:3.50},
+      {cat:"Безалкогольные", type:"unit", name:"Лимонад", price:3.40},
+    ];
+
+    // =========================
+    // Storage keys
+    // =========================
+    const LS = { catalog:"pos_catalog_v3", cart:"pos_cart_v3", cat:"pos_cat_v3" };
+
+    // =========================
+    // Helpers
+    // =========================
+    function id16(){
+      const a=new Uint32Array(2); crypto.getRandomValues(a);
+      return (a[0].toString(16)+a[1].toString(16)).slice(0,16);
+    }
+    function money(n){
+      const x=Math.round((Number(n)||0)*100)/100;
+      return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
+    }
+    function normalize(s){
+      return String(s||"").toLowerCase().replaceAll("ё","е").trim();
+    }
+    function esc(s){
+      return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+    function stepForType(type){
+      if (type==="per_liter") return 0.1;
+      if (type==="per_kg") return 0.05; // кг шаг (50г)
+      return 1;
+    }
+    function unitLabel(type){
+      if (type==="per_liter") return "л";
+      if (type==="per_kg") return "кг";
+      return "шт";
+    }
+
+    // =========================
+    // State
+    // =========================
+    let catalog = [];
+    let cart = []; // items: {productId, name, cat, type, price, qtyBase, displayQty, displayUnit}
+    let catFilter = "Все";
+    let suggestItems = [];
+    let activeSuggestIndex = -1;
+
+    // =========================
+    // DOM
+    // =========================
+    const el = {
+      search: document.getElementById("search"),
+      suggest: document.getElementById("suggest"),
+      qtyAdd: document.getElementById("qtyAdd"),
+      qtyMode: document.getElementById("qtyMode"),
+      addBtn: document.getElementById("addBtn"),
+
+      catBar: document.getElementById("catBar"),
+      quickGrid: document.getElementById("quickGrid"),
+
+      cartBody: document.getElementById("cartBody"),
+      grandTotal: document.getElementById("grandTotal"),
+      itemsCount: document.getElementById("itemsCount"),
+      unitsCount: document.getElementById("unitsCount"),
+      clearBtn: document.getElementById("clearBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+
+      newName: document.getElementById("newName"),
+      newPrice: document.getElementById("newPrice"),
+      newCat: document.getElementById("newCat"),
+      newType: document.getElementById("newType"),
+      newUnitHint: document.getElementById("newUnitHint"),
+      addProduct: document.getElementById("addProduct"),
+      manageSelect: document.getElementById("manageSelect"),
+      deleteSelected: document.getElementById("deleteSelected"),
+      resetAll: document.getElementById("resetAll"),
+
+      saveBtn: document.getElementById("saveBtn"),
+      loadBtn: document.getElementById("loadBtn"),
+      fileInput: document.getElementById("fileInput"),
+    };
+
+    // =========================
+    // Catalog init/load/save
+    // =========================
+    function buildDefaultCatalog(){
+      return DEFAULT_PRODUCTS.map(p => ({...p, id:id16()}));
+    }
+    function saveAll(){
+      localStorage.setItem(LS.catalog, JSON.stringify(catalog));
+      localStorage.setItem(LS.cart, JSON.stringify(cart));
+      localStorage.setItem(LS.cat, catFilter);
+    }
+    function loadAll(){
+      const savedCat = localStorage.getItem(LS.catalog);
+      const savedCart = localStorage.getItem(LS.cart);
+      const savedFilter = localStorage.getItem(LS.cat);
+
+      if (savedCat){
+        try{
+          const arr = JSON.parse(savedCat);
+          if (Array.isArray(arr) && arr.length) catalog = arr;
+          else catalog = buildDefaultCatalog();
+        }catch{ catalog = buildDefaultCatalog(); }
+      } else catalog = buildDefaultCatalog();
+
+      if (savedCart){
+        try{
+          const arr = JSON.parse(savedCart);
+          if (Array.isArray(arr)) cart = arr;
+        }catch{}
+      }
+      catFilter = savedFilter || "Все";
+    }
+
+    // =========================
+    // Categories
+    // =========================
+    function categories(){
+      const set = new Set(catalog.map(p=>p.cat));
+      return ["Все", ...Array.from(set).sort((a,b)=>a.localeCompare(b,"ru"))];
+    }
+    function renderCatBar(){
+      const cats = categories();
+      el.catBar.innerHTML = cats.map(c =>
+        `<button class="catBtn ${c===catFilter?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`
+      ).join("");
+      // right panel category select
+      el.newCat.innerHTML = cats.filter(c=>c!=="Все").map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+    }
+    function setCat(cat){
+      catFilter = cat;
+      hideSuggest();
+      renderAll();
+      saveAll();
+      el.search.focus(); el.search.select();
+    }
+
+    // =========================
+    // Quick grid
+    // =========================
+    function renderQuick(){
+      const pool = catalog
+        .filter(p => catFilter==="Все" ? true : p.cat===catFilter)
+        .slice()
+        .sort((a,b)=>a.name.localeCompare(b.name,"ru"))
+        .slice(0, 20);
+
+      el.quickGrid.innerHTML = pool.map(p => {
+        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
+        return `<button class="ghost qbtn" data-qid="${p.id}">
+          <div style="font-weight:900">${esc(p.name)}</div>
+          <div class="muted">${esc(p.cat)} · <span class="priceTag">${money(p.price)}${suffix}</span></div>
+        </button>`;
+      }).join("") || `<div class="muted">Нет товаров в этой категории.</div>`;
+    }
+
+    // =========================
+    // Suggest
+    // =========================
+    function suggest(query){
+      const q = normalize(query);
+      if (!q) return [];
+      const pool = catalog.filter(p => catFilter==="Все" ? true : p.cat===catFilter);
+
+      // score: startsWith best, includes ok; also allow "кран 7"
+      const scored = pool.map(p=>{
+        const n = normalize(p.name);
+        let s = 0;
+        if (n.startsWith(q)) s = 3;
+        else if (n.includes(q)) s = 2;
+        // if query is number and item contains "Кран <num>"
+        const num = q.match(/^\d+$/) ? q : null;
+        if (num && n.includes("кран "+num)) s = 4;
+        return {p, s};
+      }).filter(x=>x.s>0)
+        .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
+        .slice(0, 14)
+        .map(x=>x.p);
+
+      return scored;
+    }
+
+    function showSuggest(items){
+      suggestItems = items;
+      activeSuggestIndex = items.length ? 0 : -1;
+      if (!items.length){
+        el.suggest.style.display="none";
+        el.suggest.innerHTML="";
+        return;
+      }
+      el.suggest.innerHTML = items.map((p,i)=>{
+        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
+        return `<button type="button" data-idx="${i}" class="${i===activeSuggestIndex?"active":""}">
+          <span class="muted">${esc(p.cat)} ·</span> ${esc(p.name)}
+          <span class="priceTag">· ${money(p.price)}${suffix}</span>
+        </button>`;
+      }).join("");
+      el.suggest.style.display="block";
+    }
+
+    function updateActiveSuggest(){
+      const btns = [...el.suggest.querySelectorAll("button")];
+      btns.forEach((b,i)=>b.classList.toggle("active", i===activeSuggestIndex));
+      const a = btns[activeSuggestIndex];
+      if (a) a.scrollIntoView({block:"nearest"});
+    }
+
+    function hideSuggest(){
+      el.suggest.style.display="none";
+      el.suggest.innerHTML="";
+      suggestItems=[];
+      activeSuggestIndex=-1;
+    }
+
+    function findById(id){ return catalog.find(p=>p.id===id) || null; }
+
+    function findBestMatchByNameOrTapInput(text){
+      const t = normalize(text);
+
+      // exact name
+      const pool = catalog.filter(p => catFilter==="Все" ? true : p.cat===catFilter);
+      const exact = pool.find(p=>normalize(p.name)===t);
+      if (exact) return exact;
+
+      // "кран 7"
+      const m = t.match(/кран\s*(\d{1,2})/);
+      if (m){
+        const num = m[1];
+        const tap = pool.find(p=>normalize(p.name).includes("кран "+num+" "));
+        if (tap) return tap;
+      }
+
+      // fallback to first suggest
+      return suggestItems[0] || null;
+    }
+
+    // =========================
+    // Qty input mode (auto)
+    // =========================
+    function applyQtyInputForProduct(p){
+      const mode = el.qtyMode.value;
+      if (mode !== "auto") return; // user forced
+
+      if (p.type==="per_liter"){
+        el.qtyAdd.step = "0.1";
+        el.qtyAdd.min = "0.1";
+        if (Number(el.qtyAdd.value) <= 0) el.qtyAdd.value = "1";
+      } else if (p.type==="per_kg"){
+        // user usually enters grams, but we store kg in cart.
+        el.qtyAdd.step = "50"; // grams
+        el.qtyAdd.min = "1";
+        if (Number(el.qtyAdd.value) <= 0) el.qtyAdd.value = "100";
+      } else {
+        el.qtyAdd.step = "1";
+        el.qtyAdd.min = "1";
+        if (Number(el.qtyAdd.value) <= 0) el.qtyAdd.value = "1";
+      }
+    }
+
+    function interpretQtyInput(p){
+      const raw = Number(el.qtyAdd.value);
+      if (!Number.isFinite(raw) || raw <= 0) return null;
+
+      const mode = el.qtyMode.value;
+
+      if (mode==="pcs"){
+        return { qtyBase: Math.floor(raw), displayQty: Math.floor(raw), displayUnit:"шт" };
+      }
+      if (mode==="l"){
+        const q = Math.round(raw*100)/100;
+        return { qtyBase: q, displayQty: q, displayUnit:"л" };
+      }
+      if (mode==="g"){
+        // grams -> kg
+        const kg = Math.round((raw/1000)*1000)/1000; // 1g precision stored as kg
+        return { qtyBase: kg, displayQty: raw, displayUnit:"г" };
+      }
+
+      // auto
+      if (p.type==="per_liter"){
+        const q = Math.round(raw*100)/100;
+        return { qtyBase: q, displayQty: q, displayUnit:"л" };
+      }
+      if (p.type==="per_kg"){
+        // treat input as grams
+        const grams = raw;
+        const kg = Math.round((grams/1000)*1000)/1000;
+        return { qtyBase: kg, displayQty: grams, displayUnit:"г" };
+      }
+      return { qtyBase: Math.floor(raw), displayQty: Math.floor(raw), displayUnit:"шт" };
+    }
+
+    // =========================
+    // Cart
+    // =========================
+    function lineSum(item){
+      // price is per unit / per liter / per kg depending on type, qtyBase is in base units (шт / л / кг)
+      return Math.round(item.price * item.qtyBase * 100) / 100;
+    }
+
+    function addToCart(p, qtyObj){
+      const existing = cart.find(x => x.productId===p.id && x.displayUnit===qtyObj.displayUnit);
+      if (existing){
+        // if same display unit, just add base qty and update display qty accordingly
+        existing.qtyBase = Math.round((existing.qtyBase + qtyObj.qtyBase) * 1000) / 1000;
+        if (existing.displayUnit==="г"){
+          existing.displayQty = Math.round(existing.qtyBase * 1000);
+        } else {
+          existing.displayQty = Math.round(existing.qtyBase * 100) / 100;
+        }
+      } else {
+        cart.push({
+          productId: p.id,
+          name: p.name,
+          cat: p.cat,
+          type: p.type,
+          price: p.price,
+          qtyBase: qtyObj.qtyBase,
+          displayQty: qtyObj.displayQty,
+          displayUnit: qtyObj.displayUnit
+        });
+      }
+      renderCart();
+      saveAll();
+    }
+
+    function cartTotals(){
+      let total=0;
+      let units=0;
+      for (const it of cart){
+        total += lineSum(it);
+        // units count: sum of base qty, but only meaningful for шт; for others still count
+        units += it.displayUnit==="г" ? 1 : 1;
+      }
+      return { total: Math.round(total*100)/100, items: cart.length, units };
+    }
+
+    function renderCart(){
+      el.cartBody.innerHTML = cart.map((it, idx)=>{
+        const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
+        const sum = lineSum(it);
+
+        // step for editing qty in table:
+        // if grams display -> change by 50g
+        const editStep = it.displayUnit==="г" ? 50 : (it.displayUnit==="л" ? 0.1 : 1);
+        const editMin = it.displayUnit==="г" ? 1 : (it.displayUnit==="л" ? 0.1 : 1);
+
+        return `<tr>
+          <td>
+            <div style="font-weight:900">${esc(it.name)}</div>
+            <div class="muted">${esc(it.cat)}</div>
+          </td>
+          <td class="right">
+            <div><span class="priceTag">${money(it.price)}${suffix}</span></div>
+          </td>
+          <td class="right">
+            <div class="qty">
+              <button type="button" data-act="dec" data-i="${idx}">−</button>
+              <input type="number" data-act="set" data-i="${idx}"
+                step="${editStep}" min="${editMin}" value="${it.displayQty}" />
+              <button type="button" data-act="inc" data-i="${idx}">+</button>
+              <span class="muted" style="min-width:20px">${esc(it.displayUnit)}</span>
+            </div>
+          </td>
+          <td class="right"><b>${money(sum)}</b></td>
+          <td class="right"><button class="danger" type="button" data-act="del" data-i="${idx}">×</button></td>
+        </tr>`;
+      }).join("");
+
+      const t = cartTotals();
+      el.grandTotal.textContent = money(t.total);
+      el.itemsCount.textContent = t.items;
+      el.unitsCount.textContent = t.units;
+    }
+
+    function adjustItem(idx, dir){
+      const it = cart[idx]; if (!it) return;
+      if (it.displayUnit==="г"){
+        const newG = Math.max(1, Number(it.displayQty) + dir*50);
+        it.displayQty = newG;
+        it.qtyBase = Math.round((newG/1000)*1000)/1000;
+      } else if (it.displayUnit==="л"){
+        const newL = Math.max(0.1, Math.round((Number(it.displayQty) + dir*0.1)*10)/10);
+        it.displayQty = newL;
+        it.qtyBase = newL;
+      } else {
+        const newP = Math.max(1, Math.floor(Number(it.displayQty) + dir));
+        it.displayQty = newP;
+        it.qtyBase = newP;
+      }
+      renderCart(); saveAll();
+    }
+
+    function setItemQty(idx, value){
+      const it = cart[idx]; if (!it) return;
+      const v = Number(value);
+      if (!Number.isFinite(v) || v<=0) return;
+
+      if (it.displayUnit==="г"){
+        const g = Math.max(1, Math.round(v));
+        it.displayQty = g;
+        it.qtyBase = Math.round((g/1000)*1000)/1000;
+      } else if (it.displayUnit==="л"){
+        const l = Math.max(0.1, Math.round(v*10)/10);
+        it.displayQty = l;
+        it.qtyBase = l;
+      } else {
+        const pcs = Math.max(1, Math.floor(v));
+        it.displayQty = pcs;
+        it.qtyBase = pcs;
+      }
+      renderCart(); saveAll();
+    }
+
+    // =========================
+    // Right panel: add/delete product
+    // =========================
+    function renderManageSelect(){
+      const sorted = catalog.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"ru") || a.name.localeCompare(b.name,"ru"));
+      el.manageSelect.innerHTML = sorted.map(p=>{
+        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
+        return `<option value="${p.id}">${p.cat} · ${p.name} — ${money(p.price)}${suffix}</option>`;
+      }).join("");
+    }
+
+    function addProduct(){
+      const name = String(el.newName.value||"").trim();
+      const price = Number(el.newPrice.value);
+      const cat = el.newCat.value || "Другое";
+      const type = el.newType.value || "unit";
+      const unitHint = String(el.newUnitHint.value||"").trim();
+
+      if (!name || !Number.isFinite(price)){
+        alert("Заполни название и цену.");
+        return;
+      }
+      catalog.push({id:id16(), cat, type, name, price, unitHint});
+      el.newName.value=""; el.newPrice.value=""; el.newUnitHint.value="";
+      renderAll(); saveAll();
+      el.newName.focus();
+    }
+
+    function deleteProduct(){
+      const id = el.manageSelect.value;
+      const p = findById(id);
+      if (!p) return;
+      if (!confirm(`Удалить товар?\n${p.cat} · ${p.name}`)) return;
+
+      catalog = catalog.filter(x=>x.id!==id);
+      cart = cart.filter(x=>x.productId!==id); // убрать из чека
+      renderAll(); saveAll();
+    }
+
+    function resetToYourList(){
+      if (!confirm("Сбросить каталог к твоему списку? (Текущий каталог и чек сотрутся)")) return;
+      catalog = buildDefaultCatalog();
+      cart = [];
+      catFilter = "Все";
+      renderAll(); saveAll();
+    }
+
+    // =========================
+    // Export/Import
+    // =========================
+    function exportJson(){
+      const data = { catalog, version:3 };
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pos-catalog.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJson(text){
+      const data = JSON.parse(text);
+      if (!data || !Array.isArray(data.catalog)) throw new Error("Bad file");
+      catalog = data.catalog;
+      // минимальная проверка полей
+      catalog = catalog.filter(p=>p && p.id && p.name && p.cat && Number.isFinite(Number(p.price)));
+      if (!catalog.length) throw new Error("Empty catalog");
+      // чек оставим как есть (но может потерять связи) — подчистим те, которых нет
+      const ids = new Set(catalog.map(p=>p.id));
+      cart = cart.filter(it=>ids.has(it.productId));
+      // фильтр
+      const cats = categories();
+      if (!cats.includes(catFilter)) catFilter="Все";
+      renderAll(); saveAll();
+    }
+
+    // =========================
+    // Render all
+    // =========================
+    function renderAll(){
+      // validate current filter
+      const cats = categories();
+      if (!cats.includes(catFilter)) catFilter = "Все";
+      renderCatBar();
+      renderQuick();
+      renderCart();
+      renderManageSelect();
+    }
+
+    // =========================
+    // Events
+    // =========================
+    el.search.addEventListener("input", ()=>{
+      const items = suggest(el.search.value);
+      showSuggest(items);
+      const p = findBestMatchByNameOrTapInput(el.search.value);
+      if (p) applyQtyInputForProduct(p);
+    });
+
+    el.search.addEventListener("keydown", (e)=>{
+      if (e.key==="Escape"){ hideSuggest(); return; }
+      if (!suggestItems.length) return;
+
+      if (e.key==="ArrowDown"){
+        e.preventDefault();
+        activeSuggestIndex = Math.min(suggestItems.length-1, activeSuggestIndex+1);
+        updateActiveSuggest();
+      } else if (e.key==="ArrowUp"){
+        e.preventDefault();
+        activeSuggestIndex = Math.max(0, activeSuggestIndex-1);
+        updateActiveSuggest();
+      } else if (e.key==="Enter"){
+        e.preventDefault();
+        const p = suggestItems[activeSuggestIndex] || findBestMatchByNameOrTapInput(el.search.value);
+        if (!p) return;
+        applyQtyInputForProduct(p);
+        const q = interpretQtyInput(p);
+        if (!q) return;
+        addToCart(p, q);
+        el.search.focus(); el.search.select();
+      }
+    });
+
+    el.suggest.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const idx = Number(btn.dataset.idx);
+      const p = suggestItems[idx];
+      if (!p) return;
+      el.search.value = p.name;
+      hideSuggest();
+      applyQtyInputForProduct(p);
+      const q = interpretQtyInput(p);
+      if (!q) return;
+      addToCart(p, q);
+      el.search.focus(); el.search.select();
+    });
+
+    el.addBtn.addEventListener("click", ()=>{
+      const p = findBestMatchByNameOrTapInput(el.search.value);
+      if (!p){
+        alert("Не нашла товар. Выбери из подсказок или добавь товар справа.");
+        return;
+      }
+      applyQtyInputForProduct(p);
+      const q = interpretQtyInput(p);
+      if (!q) return;
+      addToCart(p, q);
+      el.search.focus(); el.search.select();
+    });
+
+    el.catBar.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      setCat(btn.dataset.cat);
+    });
+
+    el.quickGrid.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const id = btn.dataset.qid;
+      const p = findById(id);
+      if (!p) return;
+      applyQtyInputForProduct(p);
+      const q = interpretQtyInput(p);
+      if (!q) return;
+      addToCart(p, q);
+      el.search.focus(); el.search.select();
+    });
+
+    el.cartBody.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const act = btn.dataset.act;
+      const idx = Number(btn.dataset.i);
+      if (act==="del"){
+        cart.splice(idx,1);
+        renderCart(); saveAll();
+      } else if (act==="inc"){
+        adjustItem(idx, +1);
+      } else if (act==="dec"){
+        adjustItem(idx, -1);
+      }
+    });
+
+    el.cartBody.addEventListener("change", (e)=>{
+      const inp = e.target.closest("input[data-act='set']");
+      if (!inp) return;
+      const idx = Number(inp.dataset.i);
+      setItemQty(idx, inp.value);
+    });
+
+    el.clearBtn.addEventListener("click", ()=>{
+      if (!confirm("Очистить чек?")) return;
+      cart = [];
+      renderCart(); saveAll();
+    });
+
+    el.copyBtn.addEventListener("click", async ()=>{
+      const lines = cart.map(it=>{
+        const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
+        const qtyTxt = it.displayUnit==="г" ? `${it.displayQty} г` : `${it.displayQty} ${it.displayUnit}`;
+        return `${it.name} — ${qtyTxt} × ${money(it.price)}${suffix} = ${money(lineSum(it))} GEL`;
+      });
+      lines.push(`ИТОГО: ${money(cartTotals().total)} GEL`);
+      const text = lines.join("\n");
+      try{
+        await navigator.clipboard.writeText(text);
+        alert("Чек скопирован.");
+      }catch{
+        prompt("Скопируй вручную:", text);
+      }
+    });
+
+    document.addEventListener("keydown", (e)=>{
+      if (e.ctrlKey && e.key.toLowerCase()==="l"){
+        e.preventDefault();
+        el.search.focus(); el.search.select();
+      }
+    });
+
+    document.addEventListener("click", (e)=>{
+      if (!e.target.closest(".searchBox")) hideSuggest();
+    });
+
+    el.addProduct.addEventListener("click", addProduct);
+    el.deleteSelected.addEventListener("click", deleteProduct);
+    el.resetAll.addEventListener("click", resetToYourList);
+
+    el.saveBtn.addEventListener("click", exportJson);
+    el.loadBtn.addEventListener("click", ()=>el.fileInput.click());
+    el.fileInput.addEventListener("change", async ()=>{
+      const f = el.fileInput.files?.[0];
+      if (!f) return;
+      try{
+        const t = await f.text();
+        importJson(t);
+        alert("Каталог загружен.");
+      }catch{
+        alert("Не смогла прочитать файл. Попробуй загрузить именно pos-catalog.json, который касса скачала.");
+      }finally{
+        el.fileInput.value = "";
+      }
+    });
+
+    // When qtyMode changes, adjust step a bit
+    el.qtyMode.addEventListener("change", ()=>{
+      const mode = el.qtyMode.value;
+      if (mode==="pcs"){ el.qtyAdd.step="1"; el.qtyAdd.min="1"; }
+      if (mode==="l"){ el.qtyAdd.step="0.1"; el.qtyAdd.min="0.1"; }
+      if (mode==="g"){ el.qtyAdd.step="50"; el.qtyAdd.min="1"; }
+      if (mode==="auto"){
+        const p = findBestMatchByNameOrTapInput(el.search.value);
+        if (p) applyQtyInputForProduct(p);
+      }
+    });
+
+    // =========================
+    // INIT
+    // =========================
+    loadAll();
+    renderAll();
+    saveAll();
+  </script>
+</body>
+</html>
