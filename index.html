@@ -221,15 +221,17 @@
       return data;
     }
     async function apiPost(body){
-      const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "API error");
-      return data;
-    }
+  // ВАЖНО: text/plain = "simple request", без CORS preflight
+  const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "API error");
+  return data;
+}
+
 
     // =========================
     // State
