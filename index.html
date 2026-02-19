@@ -3,94 +3,131 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>POS касса — Google Sheets (остатки + кеги)</title>
+  <title>POS касса — Google Sheets</title>
   <style>
-    :root{--bg:#0b0c10;--card:#12141a;--muted:#9aa3b2;--text:#e9eef7;--line:#232837;--acc:#6fedd1;--danger:#ff5c5c;}
-    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    body{margin:0;background:var(--bg);color:var(--text);padding:18px}
-    .wrap{max-width:1260px;margin:0 auto;display:grid;grid-template-columns: 1.2fr .8fr;gap:14px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-    h1{font-size:18px;margin:0 0 12px 0;font-weight:1000}
-    h2{font-size:14px;margin:12px 0 10px 0;color:var(--muted);font-weight:800}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    input, button, select{
-      background:#0f1117;color:var(--text);
-      border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none
+    :root{
+      --bg:#0b0c10;--card:#12141a;--muted:#9aa3b2;--text:#e9eef7;
+      --line:#232837;--acc:#6fedd1;--danger:#ff5c5c;--warn:#ffd166;
     }
-    input:focus, select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(111,237,209,.12)}
-    button{cursor:pointer}
-    button.primary{border-color:rgba(111,237,209,.45);background:rgba(111,237,209,.12)}
-    button.primary:hover{background:rgba(111,237,209,.18)}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text);padding:14px}
+    .wrap{max-width:1300px;margin:0 auto;display:grid;grid-template-columns: 1.15fr .85fr;gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+    h1{font-size:16px;margin:0 0 10px 0;font-weight:1000}
+    h2{font-size:13px;margin:12px 0 8px 0;color:var(--muted);font-weight:900}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input, button, select, textarea{
+      background:#0f1117;color:var(--text);
+      border:1px solid var(--line);border-radius:12px;padding:12px 12px;outline:none;
+      font-size:15px;
+    }
+    input:focus, select:focus, textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(111,237,209,.12)}
+    button{cursor:pointer;user-select:none}
+    button.primary{border-color:rgba(111,237,209,.55);background:rgba(111,237,209,.14)}
+    button.primary:hover{background:rgba(111,237,209,.22)}
     button.ghost{background:transparent}
-    button.danger{border-color:rgba(255,92,92,.45);background:rgba(255,92,92,.12)}
-    button.danger:hover{background:rgba(255,92,92,.18)}
+    button.danger{border-color:rgba(255,92,92,.55);background:rgba(255,92,92,.14)}
+    button.danger:hover{background:rgba(255,92,92,.22)}
+    button.warn{border-color:rgba(255,209,102,.55);background:rgba(255,209,102,.12)}
+    button.warn:hover{background:rgba(255,209,102,.18)}
+
     .muted{color:var(--muted);font-size:12px}
+    .badge{color:var(--acc);font-weight:1000}
     .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
     .kbd{border:1px solid var(--line);border-bottom-width:2px;padding:1px 6px;border-radius:6px;font-size:11px;color:var(--muted)}
-    .badge{color:var(--acc);font-weight:1000}
+    .hr{height:1px;background:var(--line);margin:12px 0}
+
+    /* Search suggest */
     .searchBox{position:relative;flex:1;min-width:280px}
     .suggest{
-      position:absolute;left:0;right:0;top:46px;background:#0f1117;border:1px solid var(--line);
-      border-radius:14px;overflow:hidden;display:none;max-height:340px;overflow:auto;z-index:10
+      position:absolute;left:0;right:0;top:52px;background:#0f1117;border:1px solid var(--line);
+      border-radius:14px;overflow:hidden;display:none;max-height:360px;overflow:auto;z-index:20
     }
     .suggest button{
       width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);
-      padding:10px 12px;border-radius:0
+      padding:12px 12px;border-radius:0;font-size:15px
     }
     .suggest button:last-child{border-bottom:0}
     .suggest button:hover,.suggest button.active{background:rgba(111,237,209,.10)}
     .priceTag{color:var(--acc);font-weight:1000}
+
+    /* Cart table */
     table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:13px;vertical-align:middle}
-    th{color:var(--muted);font-weight:900}
+    th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:14px;vertical-align:middle}
+    th{color:var(--muted);font-weight:1000;font-size:12px}
     .right{text-align:right}
+
+    /* Qty controls */
     .qty{display:flex;align-items:center;gap:8px;justify-content:flex-end}
-    .qty button{padding:6px 10px;border-radius:10px}
-    .qty input{width:96px;text-align:right;padding:8px 10px;border-radius:10px}
+    .qty button{padding:10px 12px;border-radius:12px;font-size:16px;min-width:44px}
+    .qty input{
+      width:92px;text-align:right;padding:10px 10px;border-radius:12px;font-size:15px;
+    }
+    .qty input[readonly]{opacity:1}
+    .unit{min-width:26px;text-align:left}
+
     .footerTotal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}
     .total{font-size:22px;font-weight:1100}
-    .gridBtns{display:flex;gap:8px;flex-wrap:wrap}
-    .hr{height:1px;background:var(--line);margin:12px 0}
+
+    .gridBtns{display:flex;gap:10px;flex-wrap:wrap}
+    .gridBtns button{min-width:160px}
+
+    /* Tabs & categories */
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:8px 10px;border-radius:999px}
+    .tab{padding:10px 12px;border-radius:999px}
     .tab.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
     .catBar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 10px}
-    .catBtn{padding:8px 10px;border-radius:999px}
+    .catBtn{padding:10px 12px;border-radius:999px;white-space:nowrap}
     .catBtn.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
+    .subWrap{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:6px}
+
+    /* Quick buttons */
     .quickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-    .qbtn{padding:10px 10px;border-radius:14px}
+    .qbtn{padding:12px 12px;border-radius:14px;text-align:left}
+    .qbtn .name{font-weight:1000;font-size:15px}
+    .qbtn .meta{font-size:12px;color:var(--muted);margin-top:4px}
+
+    /* Stop list */
     .stopList{display:flex;flex-direction:column;gap:8px}
     .stopItem{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#0f1117}
-    .split3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} .quickGrid{grid-template-columns:1fr} }
+    .stopItem .title{font-weight:1000}
+    .stopItem .meta{font-size:12px;color:var(--muted);margin-top:4px}
+
+    /* Tablet-friendly */
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr}
+      .quickGrid{grid-template-columns:1fr}
+      .gridBtns button{min-width:140px}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <!-- LEFT -->
     <div class="card">
-      <h1>Касса (GitHub Pages) → Google Sheets (остатки + кеги)</h1>
+      <h1>Касса</h1>
 
       <div class="row">
         <div class="searchBox">
-          <input id="search" type="text" autocomplete="off" placeholder="Пиши: «бут», «кран 7», «тест», «вобла», «квас»…" style="width:100%" />
+          <input id="search" type="text" autocomplete="off"
+                 placeholder="Поиск: «бут», «кран 7», «вобла», «квас»…"
+                 style="width:100%" />
           <div id="suggest" class="suggest"></div>
         </div>
 
-        <input id="qtyAdd" type="number" step="1" min="0.1" value="1" style="width:130px" />
-        <select id="qtyMode" style="width:160px">
-          <option value="auto">Авто (по товару)</option>
-          <option value="pcs">Шт</option>
-          <option value="l">Литры</option>
-          <option value="g">Граммы</option>
-        </select>
-        <button id="addBtn" class="primary">Добавить</button>
+        <!-- qty add: readonly to avoid auto keyboard -->
+        <div class="row" style="gap:8px">
+          <button id="qtyMinus" class="ghost" type="button">−</button>
+          <input id="qtyAdd" type="text" value="1" readonly inputmode="none" style="width:86px;text-align:right" />
+          <button id="qtyPlus" class="ghost" type="button">+</button>
+        </div>
+
+        <button id="addBtn" class="primary" type="button">Добавить</button>
       </div>
 
       <div class="row" style="margin:8px 0 4px">
-        <span class="pill">Подсказки: <span class="kbd">↑</span><span class="kbd">↓</span> · <span class="kbd">Enter</span> · <span class="kbd">Esc</span></span>
-        <span class="pill">Фокус: <span class="kbd">Ctrl</span>+<span class="kbd">L</span></span>
-        <span class="pill">Состояние: <span id="syncStatus" class="badge">…</span></span>
+        <span class="pill">Статус: <span id="syncStatus" class="badge">…</span></span>
+        <span class="pill">Оплата: <span id="payModeLabel" class="badge">Наличные</span></span>
       </div>
 
       <h2>Чек</h2>
@@ -101,27 +138,34 @@
             <th class="right">Цена</th>
             <th class="right">Кол-во</th>
             <th class="right">Сумма</th>
-            <th class="right">Удалить</th>
+            <th class="right">×</th>
           </tr>
         </thead>
         <tbody id="cartBody"></tbody>
       </table>
 
       <div class="footerTotal">
-        <div class="muted">
-          <div>Позиций: <span id="itemsCount" class="badge">0</span></div>
-        </div>
+        <div class="muted">Позиций: <span id="itemsCount" class="badge">0</span></div>
         <div class="total">Итого: <span id="grandTotal">0</span> GEL</div>
       </div>
 
+      <!-- Payment buttons -->
       <div class="gridBtns" style="margin-top:12px">
-        <button id="payBtn" class="primary">Пробить (списать остатки)</button>
-        <button id="copyBtn" class="ghost">Копировать чек</button>
-        <button id="clearBtn" class="danger">Очистить чек</button>
+        <button id="cashBtn" class="primary" type="button">Наличные</button>
+        <button id="cardBtn" class="ghost" type="button">Карта</button>
+        <button id="deliveryBtn" class="ghost" type="button">Доставка</button>
+
+        <button id="copyBtn" class="ghost" type="button">Копировать чек</button>
+        <button id="clearBtn" class="danger" type="button">Очистить</button>
+      </div>
+
+      <div class="gridBtns" style="margin-top:10px">
+        <button id="closeShiftBtn" class="warn" type="button">Закрыть смену</button>
       </div>
 
       <div class="muted" style="margin-top:10px">
-        “Пробить” отправляет чек в Google Sheets и обновляет “Стоп”. История продаж пишется в лист Sales.
+        * “Доставка” считает по <b>deliveryPrice</b> (если есть), иначе по обычной цене.<br/>
+        * Разлив списывает литры из кег, при переливе спросит сколько налили из новой кеги.
       </div>
     </div>
 
@@ -129,80 +173,107 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Меню / На стопе</h2>
-        <button id="refreshBtn" class="ghost">Обновить</button>
+        <button id="refreshBtn" class="ghost" type="button">Обновить</button>
       </div>
 
       <div class="tabs" style="margin-top:10px">
-        <button class="tab active" data-tab="menu">Меню</button>
-        <button class="tab" data-tab="stop">На стопе (<span id="stopCount">0</span>)</button>
+        <button class="tab active" data-tab="menu" type="button">Меню</button>
+        <button class="tab" data-tab="stop" type="button">На стопе (<span id="stopCount">0</span>)</button>
       </div>
 
       <div id="menuTab">
         <div id="catBar" class="catBar"></div>
-        <div class="muted">
-          * Разлив: продаём литры, списание идёт из Kegs. Кега закончилась → автоподмена, пока есть spares.
-        </div>
+        <div id="subBar" class="subWrap" style="display:none"></div>
+
         <h2>Быстро добавить</h2>
         <div id="quickGrid" class="quickGrid"></div>
       </div>
 
       <div id="stopTab" style="display:none">
+        <div id="stopCatBar" class="catBar"></div>
+        <div id="stopSubBar" class="subWrap" style="display:none"></div>
+
         <h2>Список “на стопе”</h2>
         <div id="stopList" class="stopList"></div>
       </div>
 
       <div class="hr"></div>
 
-      <h2>Товары (через таблицу) + быстрый апдейт</h2>
+      <!-- Optional: simple product add/delete (kept from previous version) -->
+      <h2>Товары (быстро)</h2>
       <div class="muted" style="margin-bottom:8px">
-        Обычно каталог/остатки правятся в Google Sheets. Тут — быстрый способ добавить/удалить, если нужно.
+        Обычно редактируй каталог в Google Sheets. Тут — быстрый добав/удал.
       </div>
 
-      <div class="split3">
-        <input id="newName" placeholder="Название" />
-        <input id="newPrice" type="number" min="0" step="0.01" placeholder="Цена (GEL)" />
-        <select id="newCat"></select>
+      <div class="row" style="gap:8px">
+        <input id="newName" placeholder="Название" style="flex:1;min-width:160px" />
+        <input id="newPrice" type="number" min="0" step="0.01" placeholder="Цена (GEL)" style="width:140px" />
+        <input id="newDeliveryPrice" type="number" min="0" step="0.01" placeholder="Доставка (GEL)" style="width:160px" />
       </div>
-      <div class="split3" style="margin-top:10px">
-        <select id="newType">
+      <div class="row" style="gap:8px;margin-top:8px">
+        <select id="newMainCat" style="flex:1;min-width:180px"></select>
+        <select id="newBottleSub" style="width:180px"></select>
+        <select id="newType" style="width:160px">
           <option value="unit">Обычное (шт)</option>
           <option value="per_liter">Цена за 1л</option>
           <option value="per_kg">Цена за 1кг</option>
         </select>
-        <select id="newTrack">
+      </div>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <select id="newTrack" style="width:220px">
           <option value="count">Списание: шт</option>
           <option value="liters">Списание: литры</option>
           <option value="grams">Списание: граммы</option>
           <option value="keg">Списание: кеги (разлив)</option>
         </select>
-        <input id="newKegSize" type="number" min="0" step="1" placeholder="Кега (л), если разлив" />
-      </div>
-      <div class="row" style="margin-top:10px">
-        <input id="newKegSpares" type="number" min="0" step="1" placeholder="Запас кег (spares)" />
-        <button id="addProductBtn" class="primary">Добавить товар</button>
+        <input id="newKegSize" type="number" min="0" step="1" placeholder="Кега (л)" style="width:120px" />
+        <input id="newKegSpares" type="number" min="0" step="1" placeholder="Запас кег" style="width:120px" />
+        <button id="addProductBtn" class="primary" type="button">Добавить</button>
       </div>
 
       <div class="row" style="margin-top:10px">
         <select id="deleteSelect" style="width:100%"></select>
       </div>
       <div class="row" style="margin-top:10px">
-        <button id="deleteBtn" class="danger">Удалить выбранный</button>
+        <button id="deleteBtn" class="danger" type="button">Удалить выбранный</button>
       </div>
     </div>
   </div>
 
   <script>
-    // =========================
-    // CONFIG (fill these!)
-    // =========================
-    const API_URL = "https://script.google.com/macros/s/AKfycbwxP2ym0JSrHOrUxHEEAwJ1ojCHypgB6E_Fwm0MXjL8PD1XffzokSZiiSsvDo3btPvq/exec";
-    const API_TOKEN = "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2";
+    /**********************
+     * CONFIG (fill these)
+     **********************/
+    const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+    const API_TOKEN = "PASTE_YOUR_TOKEN_HERE";
 
-    // =========================
-    // Helpers
-    // =========================
+    /**********************
+     * Category scheme
+     **********************/
+    const MAIN_CATS = [
+      "Все",
+      "Краны",
+      "Тара",
+      "Бутылки/Банки",
+      "Рыба",
+      "Снеки",
+      "Мясо",
+      "Чипсы"
+    ];
+    const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose"];
+
+    // UI category state
+    let catFilter = "Все";
+    let bottleSub = "IPA/APA";
+
+    let stopCatFilter = "Все";
+    let stopBottleSub = "IPA/APA";
+
+    /**********************
+     * Helpers
+     **********************/
     function money(n){
-      const x=Math.round((Number(n)||0)*100)/100;
+      const x = Math.round((Number(n)||0)*100)/100;
       return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
     }
     function normalize(s){ return String(s||"").toLowerCase().replaceAll("ё","е").trim(); }
@@ -213,74 +284,89 @@
     function uuid(){
       return (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+"-"+Math.random().toString(16).slice(2));
     }
-    async function apiGetState(){
-      const url = `${API_URL}?path=state&token=${encodeURIComponent(API_TOKEN)}`;
+
+    // POST without CORS preflight
+    async function apiPost(body){
+      const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
+        method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "API error");
+      return data;
+    }
+    async function apiGet(path){
+      const url = `${API_URL}?path=${encodeURIComponent(path)}&token=${encodeURIComponent(API_TOKEN)}`;
       const res = await fetch(url);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }
-    async function apiPost(body){
-  // ВАЖНО: text/plain = "simple request", без CORS preflight
-  const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "API error");
-  return data;
-}
 
+    /**********************
+     * State
+     **********************/
+    let state = null;        // from Sheets
+    let catalog = [];        // products with deliveryPrice
+    let stopSet = new Set(); // stopIds
 
-    // =========================
-    // State
-    // =========================
-    let state = null;           // from Sheets
-    let catalog = [];           // state.products
-    let stopSet = new Set();    // stopIds
-    let catFilter = "Все";
-    let activeTab = "menu";
+    // payment: cash | card | delivery
+    let paymentMethod = "cash";
 
-    // Cart items: {productId,name,cat,type,price,track,qtyBase,displayQty,displayUnit}
+    // cart items:
+    // { productId, name, mainCat, subCat, type, track, price, deliveryPrice, qtyPricing, trackQty, displayQty, displayUnit }
     let cart = [];
 
-    // Suggest
+    // Search suggest
     let suggestItems = [];
     let activeSuggestIndex = -1;
 
-    // =========================
-    // DOM
-    // =========================
+    // QtyAdd numeric state (we store as number; display as string)
+    let qtyAddValue = 1;
+
+    /**********************
+     * DOM
+     **********************/
     const el = {
+      // left
       search: document.getElementById("search"),
       suggest: document.getElementById("suggest"),
       qtyAdd: document.getElementById("qtyAdd"),
-      qtyMode: document.getElementById("qtyMode"),
+      qtyMinus: document.getElementById("qtyMinus"),
+      qtyPlus: document.getElementById("qtyPlus"),
       addBtn: document.getElementById("addBtn"),
-
       cartBody: document.getElementById("cartBody"),
       itemsCount: document.getElementById("itemsCount"),
       grandTotal: document.getElementById("grandTotal"),
-
-      payBtn: document.getElementById("payBtn"),
+      syncStatus: document.getElementById("syncStatus"),
+      payModeLabel: document.getElementById("payModeLabel"),
+      cashBtn: document.getElementById("cashBtn"),
+      cardBtn: document.getElementById("cardBtn"),
+      deliveryBtn: document.getElementById("deliveryBtn"),
       copyBtn: document.getElementById("copyBtn"),
       clearBtn: document.getElementById("clearBtn"),
-      syncStatus: document.getElementById("syncStatus"),
+      closeShiftBtn: document.getElementById("closeShiftBtn"),
 
+      // right
       refreshBtn: document.getElementById("refreshBtn"),
+      menuTab: document.getElementById("menuTab"),
+      stopTab: document.getElementById("stopTab"),
       catBar: document.getElementById("catBar"),
+      subBar: document.getElementById("subBar"),
       quickGrid: document.getElementById("quickGrid"),
 
       stopCount: document.getElementById("stopCount"),
+      stopCatBar: document.getElementById("stopCatBar"),
+      stopSubBar: document.getElementById("stopSubBar"),
       stopList: document.getElementById("stopList"),
 
-      menuTab: document.getElementById("menuTab"),
-      stopTab: document.getElementById("stopTab"),
-
+      // product add/delete
       newName: document.getElementById("newName"),
       newPrice: document.getElementById("newPrice"),
-      newCat: document.getElementById("newCat"),
+      newDeliveryPrice: document.getElementById("newDeliveryPrice"),
+      newMainCat: document.getElementById("newMainCat"),
+      newBottleSub: document.getElementById("newBottleSub"),
       newType: document.getElementById("newType"),
       newTrack: document.getElementById("newTrack"),
       newKegSize: document.getElementById("newKegSize"),
@@ -290,68 +376,265 @@
       deleteBtn: document.getElementById("deleteBtn"),
     };
 
-    // =========================
-    // Availability / stop
-    // =========================
+    /**********************
+     * Category mapping
+     **********************/
+    function parseTapNumber(name){
+      const m = String(name||"").match(/кран\s*(\d+)/i);
+      return m ? Number(m[1]) : 9999;
+    }
+
+    function mapCategory(p){
+      // p fields: name, cat (raw from sheet), track, type
+      const name = String(p.name||"");
+      const n = normalize(name);
+      const rawCat = String(p.cat||"");
+
+      // Kegs / taps
+      if (p.track === "keg") return { main:"Краны" };
+
+      // Tare
+      if (rawCat === "Тара") return { main:"Тара" };
+
+      // Fish
+      if (rawCat.includes("Рыба")) return { main:"Рыба" };
+
+      // Bottles/cans group
+      if (rawCat === "Пиво в бутылках" || rawCat === "Безалкогольные"){
+        if (n.includes("медов") || n.includes("mead")) return { main:"Бутылки/Банки", sub:"Медовухи" };
+        if (rawCat === "Безалкогольные" || n.includes("0%") || n.includes("безалког")) return { main:"Бутылки/Банки", sub:"Безалкогольные" };
+        if (n.includes("ipa") || n.includes("apa") || n.includes("neipa") || n.includes("dipa") || n.includes("cold ipa")) return { main:"Бутылки/Банки", sub:"IPA/APA" };
+        if (n.includes("stout") || n.includes("dark") || n.includes("темн") || n.includes("shavi")) return { main:"Бутылки/Банки", sub:"Темное" };
+        if (n.includes("weiss") || n.includes("пшен")) return { main:"Бутылки/Банки", sub:"Пшеничка" };
+        if (n.includes("sour") || n.includes("gose") || n.includes("тома")) return { main:"Бутылки/Банки", sub:"Sour/Gose" };
+        return { main:"Бутылки/Банки", sub:"Классика" };
+      }
+
+      // Chips category (snacks that are chips)
+      if (n.includes("chips") || n.includes("чипс") || n.includes("bulba chips") || n.includes("mega chips")){
+        return { main:"Чипсы" };
+      }
+
+      // Meat
+      if (n.includes("джерки") || n.includes("колбас") || n.includes("кабанос")){
+        return { main:"Мясо" };
+      }
+
+      // Snacks (everything else from Закуски)
+      if (rawCat === "Закуски") return { main:"Снеки" };
+
+      // Fallback
+      return { main:"Снеки" };
+    }
+
+    function withMapped(p){
+      const m = mapCategory(p);
+      return { ...p, mainCat: m.main, subCat: m.sub || "" };
+    }
+
+    function passesFilter(p, main, sub){
+      if (main === "Все") return true;
+      if (p.mainCat !== main) return false;
+      if (main === "Бутылки/Банки"){
+        return (p.subCat || "Классика") === sub;
+      }
+      return true;
+    }
+
     function isAvailable(p){
       return !stopSet.has(p.id);
     }
 
-    function availableCatalog(){
-      return catalog.filter(isAvailable);
+    /**********************
+     * UI: payment
+     **********************/
+    function setPayment(method){
+      paymentMethod = method;
+
+      el.cashBtn.classList.toggle("primary", method==="cash");
+      el.cashBtn.classList.toggle("ghost", method!=="cash");
+
+      el.cardBtn.classList.toggle("primary", method==="card");
+      el.cardBtn.classList.toggle("ghost", method!=="card");
+
+      el.deliveryBtn.classList.toggle("primary", method==="delivery");
+      el.deliveryBtn.classList.toggle("ghost", method!=="delivery");
+
+      el.payModeLabel.textContent = (method==="cash") ? "Наличные" : (method==="card" ? "Карта" : "Доставка");
+      renderCart();
     }
 
-    // =========================
-    // Categories + menu render
-    // =========================
-    function categories(){
-      const set = new Set(availableCatalog().map(p=>p.cat));
-      const all = ["Все", ...Array.from(set).sort((a,b)=>a.localeCompare(b,"ru"))];
-      return all;
+    function unitPriceFor(item){
+      if (paymentMethod !== "delivery") return item.price;
+      const dp = item.deliveryPrice;
+      if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0){
+        return Number(dp);
+      }
+      return item.price;
     }
 
-    function renderCatBar(){
-      const cats = categories();
-      if (!cats.includes(catFilter)) catFilter = "Все";
+    /**********************
+     * QtyAdd (no keyboard)
+     **********************/
+    function setQtyAdd(v){
+      if (!Number.isFinite(v) || v <= 0) v = 1;
+      // keep friendly formatting: up to 2 decimals
+      v = Math.round(v * 100) / 100;
+      qtyAddValue = v;
+      el.qtyAdd.value = String(v).replace(".", ".");
+    }
 
-      el.catBar.innerHTML = cats.map(c =>
-        `<button class="catBtn ${c===catFilter?"active":""}" data-cat="${esc(c)}">${esc(c)}</button>`
+    function stepForCurrentInput(){
+      const p = findBestMatchByNameOrTapInput(el.search.value);
+      if (!p) return 1;
+
+      // grams products: 50g
+      if (p.type === "per_kg" || p.track === "grams") return 50;
+
+      // liters: 0.5
+      if (p.type === "per_liter" || p.track === "liters" || p.track === "keg") return 0.5;
+
+      // default pcs
+      return 1;
+    }
+
+    function adjustQtyAdd(dir){
+      const step = stepForCurrentInput();
+      let v = qtyAddValue;
+
+      if (step === 0.5){
+        v = Math.max(0.5, Math.round((v + dir*0.5)*10)/10);
+      } else if (step === 50){
+        v = Math.max(50, Math.round(v + dir*50));
+      } else {
+        v = Math.max(1, Math.round(v + dir));
+      }
+      setQtyAdd(v);
+    }
+
+    /**********************
+     * Catalog / state sync
+     **********************/
+    function applyStateToUI(newState){
+      state = newState;
+
+      // map products
+      catalog = (state.products || []).map(p => withMapped({
+        id: String(p.id),
+        name: p.name,
+        cat: p.cat,
+        type: p.type || "unit",
+        price: Number(p.price||0),
+        deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
+        track: p.track || "count"
+      }));
+
+      stopSet = new Set(state.stopIds || []);
+      el.stopCount.textContent = String(stopSet.size);
+      el.syncStatus.textContent = "OK";
+
+      renderMenuCats();
+      renderStopCats();
+      renderQuick();
+      renderStopList();
+      renderDeleteSelect();
+      renderNewProductCats();
+    }
+
+    async function refreshState(){
+      el.syncStatus.textContent = "…";
+      const data = await apiGet("state");
+      applyStateToUI(data);
+    }
+
+    /**********************
+     * Menu cats + subcats
+     **********************/
+    function renderMenuCats(){
+      el.catBar.innerHTML = MAIN_CATS.map(c =>
+        `<button class="catBtn ${c===catFilter?"active":""}" data-cat="${esc(c)}" type="button">${esc(c)}</button>`
       ).join("");
 
-      // add product category list (includes ALL categories from full catalog)
-      const allCatsSet = new Set(catalog.map(p=>p.cat));
-      const allCats = Array.from(allCatsSet).sort((a,b)=>a.localeCompare(b,"ru"));
-      el.newCat.innerHTML = allCats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+      if (catFilter === "Бутылки/Банки"){
+        el.subBar.style.display = "flex";
+        el.subBar.innerHTML = BOTTLE_SUB.map(s =>
+          `<button class="catBtn ${s===bottleSub?"active":""}" data-sub="${esc(s)}" type="button">${esc(s)}</button>`
+        ).join("");
+      } else {
+        el.subBar.style.display = "none";
+        el.subBar.innerHTML = "";
+      }
+    }
+
+    function renderStopCats(){
+      el.stopCatBar.innerHTML = MAIN_CATS.map(c =>
+        `<button class="catBtn ${c===stopCatFilter?"active":""}" data-stopcat="${esc(c)}" type="button">${esc(c)}</button>`
+      ).join("");
+
+      if (stopCatFilter === "Бутылки/Банки"){
+        el.stopSubBar.style.display = "flex";
+        el.stopSubBar.innerHTML = BOTTLE_SUB.map(s =>
+          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>${""}`
+        ).join("");
+      } else {
+        el.stopSubBar.style.display = "none";
+        el.stopSubBar.innerHTML = "";
+      }
+    }
+
+    /**********************
+     * Quick add buttons
+     **********************/
+    function availableFiltered(){
+      return catalog
+        .filter(isAvailable)
+        .filter(p => passesFilter(p, catFilter, bottleSub));
+    }
+
+    function stoppedFiltered(){
+      return catalog
+        .filter(p => stopSet.has(p.id))
+        .filter(p => passesFilter(p, stopCatFilter, stopBottleSub));
     }
 
     function renderQuick(){
-      const pool = availableCatalog()
-        .filter(p => catFilter==="Все" ? true : p.cat===catFilter)
-        .slice()
-        .sort((a,b)=>a.name.localeCompare(b.name,"ru"))
-        .slice(0, 20);
+      let pool = availableFiltered().slice();
+
+      // sort: taps by number, others by name
+      pool.sort((a,b)=>{
+        if (a.mainCat==="Краны" && b.mainCat==="Краны"){
+          return parseTapNumber(a.name) - parseTapNumber(b.name);
+        }
+        return a.name.localeCompare(b.name, "ru");
+      });
+
+      pool = pool.slice(0, 24);
 
       el.quickGrid.innerHTML = pool.map(p=>{
         const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
-        return `<button class="ghost qbtn" data-qid="${p.id}">
-          <div style="font-weight:1000">${esc(p.name)}</div>
-          <div class="muted">${esc(p.cat)} · <span class="priceTag">${money(p.price)}${suffix}</span></div>
+        return `<button class="ghost qbtn" data-qid="${p.id}" type="button">
+          <div class="name">${esc(p.name)}</div>
+          <div class="meta">${esc(p.mainCat)}${p.mainCat==="Бутылки/Банки" ? " · "+esc(p.subCat) : ""} · <span class="priceTag">${money(p.price)}${suffix}</span></div>
         </button>`;
       }).join("") || `<div class="muted">Нет доступных товаров в этой категории.</div>`;
     }
 
-    function renderStop(){
-      const stopped = catalog.filter(p=>stopSet.has(p.id))
-        .slice().sort((a,b)=>a.cat.localeCompare(b.cat,"ru") || a.name.localeCompare(b.name,"ru"));
+    function renderStopList(){
+      const list = stoppedFiltered().slice();
 
-      el.stopCount.textContent = String(stopped.length);
+      list.sort((a,b)=>{
+        if (a.mainCat==="Краны" && b.mainCat==="Краны"){
+          return parseTapNumber(a.name) - parseTapNumber(b.name);
+        }
+        return (a.mainCat.localeCompare(b.mainCat,"ru") || a.name.localeCompare(b.name,"ru"));
+      });
 
-      if (!stopped.length){
+      if (!list.length){
         el.stopList.innerHTML = `<div class="muted">Сейчас ничего не на стопе 🎉</div>`;
         return;
       }
 
-      el.stopList.innerHTML = stopped.map(p=>{
+      el.stopList.innerHTML = list.map(p=>{
         let hint = "";
         if (p.track === "keg"){
           const k = (state && state.kegs && state.kegs[p.id]) || null;
@@ -361,38 +644,15 @@
           hint = `Остаток: ${q}`;
         }
         return `<div class="stopItem">
-          <div style="font-weight:1000">${esc(p.name)}</div>
-          <div class="muted">${esc(p.cat)} · ${esc(hint)}</div>
+          <div class="title">${esc(p.name)}</div>
+          <div class="meta">${esc(p.mainCat)}${p.mainCat==="Бутылки/Банки" ? " · "+esc(p.subCat) : ""} · ${esc(hint)}</div>
         </div>`;
       }).join("");
     }
 
-    // =========================
-    // Suggest
-    // =========================
-    function suggest(query){
-      const q = normalize(query);
-      if (!q) return [];
-
-      const pool = availableCatalog().filter(p => catFilter==="Все" ? true : p.cat===catFilter);
-
-      const scored = pool.map(p=>{
-        const n = normalize(p.name);
-        let s = 0;
-        if (n.startsWith(q)) s = 3;
-        else if (n.includes(q)) s = 2;
-
-        const num = q.match(/^\d+$/) ? q : null;
-        if (num && n.includes("кран "+num)) s = 4;
-        return {p,s};
-      }).filter(x=>x.s>0)
-        .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
-        .slice(0, 14)
-        .map(x=>x.p);
-
-      return scored;
-    }
-
+    /**********************
+     * Search suggest
+     **********************/
     function showSuggest(items){
       suggestItems = items;
       activeSuggestIndex = items.length ? 0 : -1;
@@ -404,7 +664,8 @@
       el.suggest.innerHTML = items.map((p,i)=>{
         const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
         return `<button type="button" data-idx="${i}" class="${i===activeSuggestIndex?"active":""}">
-          <span class="muted">${esc(p.cat)} ·</span> ${esc(p.name)}
+          <span class="muted">${esc(p.mainCat)}${p.mainCat==="Бутылки/Банки" ? " · "+esc(p.subCat) : ""} ·</span>
+          ${esc(p.name)}
           <span class="priceTag">· ${money(p.price)}${suffix}</span>
         </button>`;
       }).join("");
@@ -425,11 +686,34 @@
       activeSuggestIndex=-1;
     }
 
+    function suggest(query){
+      const q = normalize(query);
+      if (!q) return [];
+
+      const pool = availableFiltered();
+      const scored = pool.map(p=>{
+        const n = normalize(p.name);
+        let s = 0;
+        if (n.startsWith(q)) s = 3;
+        else if (n.includes(q)) s = 2;
+
+        // tap number boost
+        const num = q.match(/^\d+$/) ? q : null;
+        if (num && n.includes("кран "+num)) s = 4;
+        return {p,s};
+      }).filter(x=>x.s>0)
+        .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
+        .slice(0, 14)
+        .map(x=>x.p);
+
+      return scored;
+    }
+
     function findById(id){ return catalog.find(p=>p.id===id) || null; }
 
     function findBestMatchByNameOrTapInput(text){
       const t = normalize(text);
-      const pool = availableCatalog().filter(p => catFilter==="Все" ? true : p.cat===catFilter);
+      const pool = availableFiltered();
 
       const exact = pool.find(p=>normalize(p.name)===t);
       if (exact) return exact;
@@ -443,151 +727,90 @@
       return suggestItems[0] || null;
     }
 
-    // =========================
-    // Qty interpretation
-    // =========================
-    function applyQtyInputForProduct(p){
-      const mode = el.qtyMode.value;
-      if (mode !== "auto") return;
-
-      if (p.type==="per_liter"){
-        el.qtyAdd.step = "0.1";
-        el.qtyAdd.min = "0.1";
-        if (Number(el.qtyAdd.value) <= 0) el.qtyAdd.value = "1";
-      } else if (p.type==="per_kg"){
-        el.qtyAdd.step = "50"; // grams
-        el.qtyAdd.min = "1";
-        if (Number(el.qtyAdd.value) <= 0) el.qtyAdd.value = "100";
-      } else {
-        el.qtyAdd.step = "1";
-        el.qtyAdd.min = "1";
-        if (Number(el.qtyAdd.value) <= 0) el.qtyAdd.value = "1";
-      }
-    }
-
-    function interpretQtyInput(p){
-      const raw = Number(el.qtyAdd.value);
-      if (!Number.isFinite(raw) || raw <= 0) return null;
-
-      const mode = el.qtyMode.value;
-
-      if (mode==="pcs"){
-        const q = Math.max(1, Math.floor(raw));
-        return { qtyBase:q, displayQty:q, displayUnit:"шт" };
-      }
-      if (mode==="l"){
-        const q = Math.max(0.1, Math.round(raw*100)/100);
-        return { qtyBase:q, displayQty:q, displayUnit:"л" };
-      }
-      if (mode==="g"){
-        const grams = Math.max(1, Math.round(raw));
-        // for per_kg items we will send qtyBase in grams to API? No: API expects base track units.
-        // We'll convert depending on product.track below.
-        return { qtyBase:grams, displayQty:grams, displayUnit:"г" };
-      }
-
-      // auto
-      if (p.type==="per_liter"){
-        const q = Math.max(0.1, Math.round(raw*100)/100);
-        return { qtyBase:q, displayQty:q, displayUnit:"л" };
-      }
-      if (p.type==="per_kg"){
-        const grams = Math.max(1, Math.round(raw));
-        return { qtyBase:grams, displayQty:grams, displayUnit:"г" };
-      }
-      const q = Math.max(1, Math.floor(raw));
-      return { qtyBase:q, displayQty:q, displayUnit:"шт" };
-    }
-
-    // Convert UI qty -> track base
-    // track: count => qtyBase in pcs
-    // track: liters => qtyBase in liters
-    // track: grams  => qtyBase in grams
-    // track: keg    => qtyBase in liters
-    function toTrackQtyBase(product, qtyObj){
-      if (product.track === "grams"){
-        // ensure grams
-        if (qtyObj.displayUnit === "г") return qtyObj.qtyBase;
-        if (qtyObj.displayUnit === "кг") return Math.round(qtyObj.qtyBase * 1000);
-        // fallback
-        return Math.round(Number(qtyObj.qtyBase||0));
-      }
-      if (product.track === "liters" || product.track === "keg"){
-        // liters
-        if (qtyObj.displayUnit === "л") return Number(qtyObj.qtyBase||0);
-        if (qtyObj.displayUnit === "г") return 0; // no
-        return Number(qtyObj.qtyBase||0);
-      }
-      // count
-      return Math.max(1, Math.floor(Number(qtyObj.qtyBase||0)));
-    }
-
-    // =========================
-    // Cart
-    // =========================
+    /**********************
+     * Cart logic
+     **********************/
+    // Pricing quantity:
+    // - unit: pcs
+    // - per_liter: liters
+    // - per_kg: kilograms (from grams)
     function lineSum(item){
-      return Math.round(item.price * item.qtyPricing * 100) / 100;
-    }
-
-    // qtyPricing: the quantity used for pricing:
-    // unit => pcs; per_liter => liters; per_kg => kilograms
-    function addToCart(p, qtyObj){
-      const trackQty = toTrackQtyBase(p, qtyObj);
-
-      // qtyPricing
-      let qtyPricing = trackQty;
-      if (p.type === "per_kg"){
-        qtyPricing = trackQty / 1000; // grams -> kg
-      }
-
-      const existing = cart.find(x => x.productId===p.id && x.displayUnit===qtyObj.displayUnit);
-      if (existing){
-        existing.trackQty += trackQty;
-        existing.qtyPricing += qtyPricing;
-        existing.displayQty = qtyObj.displayUnit==="г" ? existing.trackQty : Math.round(existing.qtyPricing*100)/100;
-      } else {
-        cart.push({
-          productId: p.id,
-          name: p.name,
-          cat: p.cat,
-          type: p.type,
-          price: p.price,
-          track: p.track,
-          // for stock/keg deductions:
-          trackQty: trackQty,
-          // for money:
-          qtyPricing: qtyPricing,
-          displayQty: qtyObj.displayQty,
-          displayUnit: qtyObj.displayUnit
-        });
-      }
-      renderCart();
+      const unit = unitPriceFor(item);
+      return Math.round(unit * item.qtyPricing * 100) / 100;
     }
 
     function cartTotal(){
       return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
     }
 
+    function interpretQtyForProduct(p, qtyValue){
+      // Determine input unit automatically:
+      // - per_kg: grams
+      // - per_liter & keg: liters
+      // - unit: pcs
+      if (p.type === "per_kg" || p.track === "grams"){
+        const grams = Math.max(1, Math.round(qtyValue));
+        return { displayQty: grams, displayUnit:"г", trackQty: grams, qtyPricing: grams/1000 };
+      }
+      if (p.type === "per_liter" || p.track === "liters" || p.track === "keg"){
+        const liters = Math.max(0.5, Math.round(qtyValue*10)/10);
+        return { displayQty: liters, displayUnit:"л", trackQty: liters, qtyPricing: liters };
+      }
+      // pcs
+      const pcs = Math.max(1, Math.round(qtyValue));
+      return { displayQty: pcs, displayUnit:"шт", trackQty: pcs, qtyPricing: pcs };
+    }
+
+    function addToCart(p, qtyValue){
+      const q = interpretQtyForProduct(p, qtyValue);
+
+      const existing = cart.find(x => x.productId===p.id && x.displayUnit===q.displayUnit);
+      if (existing){
+        existing.trackQty = Math.round((existing.trackQty + q.trackQty)*100)/100;
+        existing.qtyPricing = Math.round((existing.qtyPricing + q.qtyPricing)*100)/100;
+
+        // keep displayQty synced:
+        existing.displayQty = (existing.displayUnit==="г") ? Math.round(existing.trackQty) : existing.trackQty;
+      } else {
+        cart.push({
+          productId: p.id,
+          name: p.name,
+          mainCat: p.mainCat,
+          subCat: p.subCat,
+          type: p.type,
+          track: p.track,
+          price: p.price,
+          deliveryPrice: p.deliveryPrice,
+          trackQty: q.trackQty,     // for stock/keg deduction
+          qtyPricing: q.qtyPricing, // for money
+          displayQty: q.displayQty,
+          displayUnit: q.displayUnit
+        });
+      }
+      renderCart();
+    }
+
     function renderCart(){
       el.cartBody.innerHTML = cart.map((it, idx)=>{
         const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
         const sum = lineSum(it);
-        // editable display qty (keep simple)
-        const editStep = it.displayUnit==="г" ? 50 : (it.displayUnit==="л" ? 0.1 : 1);
-        const editMin  = it.displayUnit==="г" ? 1  : (it.displayUnit==="л" ? 0.1 : 1);
+        const showPrice = unitPriceFor(it);
+
+        const step = (it.displayUnit==="г") ? 50 : (it.displayUnit==="л" ? 0.5 : 1);
+        const min  = (it.displayUnit==="г") ? 1  : (it.displayUnit==="л" ? 0.5 : 1);
 
         return `<tr>
           <td>
             <div style="font-weight:1000">${esc(it.name)}</div>
-            <div class="muted">${esc(it.cat)}</div>
+            <div class="muted">${esc(it.mainCat)}${it.mainCat==="Бутылки/Банки" ? " · "+esc(it.subCat) : ""}</div>
           </td>
-          <td class="right"><span class="priceTag">${money(it.price)}${suffix}</span></td>
+          <td class="right"><span class="priceTag">${money(showPrice)}${suffix}</span></td>
           <td class="right">
             <div class="qty">
               <button type="button" data-act="dec" data-i="${idx}">−</button>
-              <input type="number" data-act="set" data-i="${idx}" step="${editStep}" min="${editMin}" value="${it.displayQty}" />
+              <input type="text" readonly inputmode="none" value="${esc(it.displayQty)}" data-i="${idx}" style="cursor:default" />
               <button type="button" data-act="inc" data-i="${idx}">+</button>
-              <span class="muted" style="min-width:20px">${esc(it.displayUnit)}</span>
+              <span class="muted unit">${esc(it.displayUnit)}</span>
             </div>
           </td>
           <td class="right"><b>${money(sum)}</b></td>
@@ -601,185 +824,119 @@
 
     function adjustItem(idx, dir){
       const it = cart[idx]; if (!it) return;
-      const p = findById(it.productId); if (!p) return;
 
-      if (it.displayUnit==="г"){
-        const newG = Math.max(1, Number(it.displayQty) + dir*50);
+      if (it.displayUnit === "г"){
+        const newG = Math.max(1, Math.round(Number(it.displayQty) + dir*50));
         it.displayQty = newG;
-        it.trackQty = newG;                 // grams for grams-tracked
-        it.qtyPricing = (p.type==="per_kg") ? (newG/1000) : newG;
-      } else if (it.displayUnit==="л"){
-        const newL = Math.max(0.1, Math.round((Number(it.displayQty) + dir*0.1)*10)/10);
+        it.trackQty = newG;
+        it.qtyPricing = (it.type==="per_kg") ? newG/1000 : newG;
+      } else if (it.displayUnit === "л"){
+        const newL = Math.max(0.5, Math.round((Number(it.displayQty) + dir*0.5)*10)/10);
         it.displayQty = newL;
-        it.trackQty = newL;                 // liters
+        it.trackQty = newL;
         it.qtyPricing = newL;
       } else {
-        const newPcs = Math.max(1, Math.floor(Number(it.displayQty) + dir));
+        const newPcs = Math.max(1, Math.round(Number(it.displayQty) + dir));
         it.displayQty = newPcs;
-        it.trackQty = newPcs;               // count
+        it.trackQty = newPcs;
         it.qtyPricing = newPcs;
       }
       renderCart();
     }
 
-    function setItemQty(idx, value){
-      const it = cart[idx]; if (!it) return;
-      const p = findById(it.productId); if (!p) return;
-      const v = Number(value);
-      if (!Number.isFinite(v) || v<=0) return;
-
-      if (it.displayUnit==="г"){
-        const g = Math.max(1, Math.round(v));
-        it.displayQty = g;
-        it.trackQty = g;
-        it.qtyPricing = (p.type==="per_kg") ? (g/1000) : g;
-      } else if (it.displayUnit==="л"){
-        const l = Math.max(0.1, Math.round(v*10)/10);
-        it.displayQty = l;
-        it.trackQty = l;
-        it.qtyPricing = l;
-      } else {
-        const pcs = Math.max(1, Math.floor(v));
-        it.displayQty = pcs;
-        it.trackQty = pcs;
-        it.qtyPricing = pcs;
-      }
-      renderCart();
-    }
-
-    // =========================
-    // Sync state -> UI
-    // =========================
-    function applyStateToUI(newState){
-      state = newState;
-      catalog = (state.products || []).map(p=>({
-        id:String(p.id),
-        name:p.name,
-        cat:p.cat,
-        type:p.type,
-        price:Number(p.price||0),
-        track:p.track || "count"
-      }));
-      stopSet = new Set(state.stopIds || []);
-      el.syncStatus.textContent = "OK";
-      renderCatBar();
-      renderQuick();
-      renderStop();
-      renderDeleteSelect();
-    }
-
-    async function refreshState(){
-      el.syncStatus.textContent = "…";
-      const data = await apiGetState();
-      applyStateToUI(data);
-    }
-
-    // =========================
-    // Right-side tabs
-    // =========================
-    function setTab(t){
-      activeTab = t;
-      document.querySelectorAll(".tab").forEach(b=>{
-        b.classList.toggle("active", b.dataset.tab===t);
-      });
-      el.menuTab.style.display = (t==="menu") ? "" : "none";
-      el.stopTab.style.display = (t==="stop") ? "" : "none";
-    }
-
-    // =========================
-    // Right: add/delete products via API
-    // =========================
-    function renderDeleteSelect(){
-      const sorted = catalog.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"ru") || a.name.localeCompare(b.name,"ru"));
-      el.deleteSelect.innerHTML = sorted.map(p=>{
-        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
-        const stopTag = stopSet.has(p.id) ? " [STOP]" : "";
-        return `<option value="${p.id}">${p.cat} · ${p.name}${stopTag} — ${money(p.price)}${suffix}</option>`;
-      }).join("");
-    }
-
-    async function addProduct(){
-      const name = String(el.newName.value||"").trim();
-      const price = Number(el.newPrice.value);
-      const cat = el.newCat.value;
-      const type = el.newType.value;
-      const track = el.newTrack.value;
-      const kegSizeL = Number(el.newKegSize.value||0);
-      const kegsSpare = Number(el.newKegSpares.value||0);
-
-      if (!name || !cat || !Number.isFinite(price)){
-        alert("Заполни название, категорию и цену.");
-        return;
-      }
-
-      const payload = {
-        path:"productUpsert",
-        product:{
-          name, cat, type,
-          price,
-          track,
-          stopWhenZero: "TRUE",
-          kegSizeL: track==="keg" ? (kegSizeL||30) : "",
-          kegsSpare: track==="keg" ? (kegsSpare||2) : ""
-        }
-      };
-
-      el.syncStatus.textContent = "…";
-      const res = await apiPost(payload);
-      applyStateToUI(res.state);
-
-      el.newName.value=""; el.newPrice.value=""; el.newKegSize.value=""; el.newKegSpares.value="";
-      el.newName.focus();
-    }
-
-    async function deleteProduct(){
-      const id = el.deleteSelect.value;
-      if (!id) return;
-      if (!confirm("Удалить выбранный товар из таблицы?")) return;
-
-      el.syncStatus.textContent = "…";
-      const res = await apiPost({ path:"productDelete", productId:id });
-      applyStateToUI(res.state);
-    }
-
-    // =========================
-    // Pay (write sale -> Sheets)
-    // =========================
+    /**********************
+     * Pay logic (with kegSwitch prompt + low stock warn)
+     **********************/
     async function pay(){
-      if (!cart.length){
-        alert("Чек пустой.");
-        return;
+      try{
+        if (!cart.length){
+          alert("Чек пустой.");
+          return;
+        }
+
+        // Build items for API
+        const receiptId = uuid();
+        const total = cartTotal();
+
+        // Keg switch prompts
+        const kegSwitches = {}; // productId -> liters from NEW keg
+
+        for (const it of cart){
+          const p = findById(it.productId);
+          if (!p || p.track !== "keg") continue;
+
+          const k = state && state.kegs && state.kegs[p.id];
+          if (!k) continue;
+
+          const remaining = Number(k.remainingL || 0);
+          const qty = Number(it.trackQty || 0);
+
+          // If this sale spills into new keg (qty > remaining) and there are spares
+          if (qty > remaining && Number(k.spares || 0) > 0){
+            const overflow = +(qty - remaining).toFixed(2);
+            const ans = prompt(`${p.name} — кега обновлена.\nСколько литров налито из новой кеги?`, String(overflow));
+            if (ans === null) throw new Error("Отмена пробития");
+
+            let newUsed = Number(String(ans).replace(",", "."));
+            if (!Number.isFinite(newUsed) || newUsed < 0) newUsed = overflow;
+
+            // Safety: from old keg can't exceed remaining
+            const maxOld = remaining;
+            const minNew = Math.max(0, qty - maxOld);
+            if (newUsed < minNew) newUsed = minNew;
+            if (newUsed > qty) newUsed = qty;
+
+            kegSwitches[p.id] = +newUsed.toFixed(2);
+          }
+        }
+
+        const items = cart.map(it => ({
+          productId: it.productId,
+          qtyBase: it.trackQty,
+          displayUnit: it.displayUnit,
+          unitPriceUsed: unitPriceFor(it) // informational only
+        }));
+
+        el.syncStatus.textContent = "…";
+        const res = await apiPost({ path:"sale", receiptId, total, paymentMethod, items, kegSwitches });
+
+        // Update UI state
+        applyStateToUI(res.state);
+
+        // Low stock warnings (<=5 for count/liters) for available items
+        const warnings = [];
+        for (const p of catalog){
+          if (stopSet.has(p.id)) continue;
+          if (p.track !== "count" && p.track !== "liters") continue;
+
+          const q = (res.state.stock && (p.id in res.state.stock)) ? Number(res.state.stock[p.id]) : null;
+          if (q !== null && q > 0 && q <= 5){
+            const unit = (p.track === "count") ? "штук" : "литров";
+            warnings.push(`${p.name} осталось ${q} ${unit}. Отключите этот товар в доставке`);
+          }
+        }
+        if (warnings.length) alert(warnings.join("\n\n"));
+
+        // Clear cart
+        cart = [];
+        renderCart();
+        alert("Пробито ✅ Остатки обновлены.");
+
+      }catch(err){
+        el.syncStatus.textContent = "ERR";
+        alert("Ошибка при пробитии: " + err);
       }
-      const receiptId = uuid();
-      const total = cartTotal();
-
-      // IMPORTANT: API expects items with qtyBase in track units:
-      // - count => pcs
-      // - liters/keg => liters
-      // - grams => grams
-      const items = cart.map(it=>({
-        productId: it.productId,
-        qtyBase: it.trackQty,
-        displayUnit: it.displayUnit
-      }));
-
-      el.syncStatus.textContent = "…";
-      const res = await apiPost({ path:"sale", receiptId, total, items });
-
-      applyStateToUI(res.state);
-      cart = [];
-      renderCart();
-      alert("Пробито ✅ Остатки обновлены.");
     }
 
-    // =========================
-    // Copy receipt
-    // =========================
+    /**********************
+     * Copy / clear
+     **********************/
     async function copyReceipt(){
       const lines = cart.map(it=>{
         const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
-        const qtyTxt = it.displayUnit==="г" ? `${it.displayQty} г` : `${it.displayQty} ${it.displayUnit}`;
-        return `${it.name} — ${qtyTxt} × ${money(it.price)}${suffix} = ${money(lineSum(it))} GEL`;
+        const qtyTxt = (it.displayUnit==="г") ? `${it.displayQty} г` : `${it.displayQty} ${it.displayUnit}`;
+        const unit = unitPriceFor(it);
+        return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(lineSum(it))} GEL`;
       });
       lines.push(`ИТОГО: ${money(cartTotal())} GEL`);
       const text = lines.join("\n");
@@ -791,14 +948,146 @@
       }
     }
 
-    // =========================
-    // Events
-    // =========================
+    /**********************
+     * Close shift
+     **********************/
+    async function closeShift(){
+      try{
+        const data = await apiGet("shiftSummary");
+        alert(
+          `Смена за ${data.dayKey}\n\n` +
+          `Наличные: ${money(data.cash)} GEL\n` +
+          `Карта: ${money(data.card)} GEL\n` +
+          `Доставка: ${money(data.delivery)} GEL\n\n` +
+          `ИТОГО: ${money(data.total)} GEL\n` +
+          `Чеков: ${data.count}`
+        );
+      }catch(err){
+        alert("Ошибка закрытия смены: " + err);
+      }
+    }
+
+    /**********************
+     * Tabs
+     **********************/
+    function setTab(t){
+      document.querySelectorAll(".tab").forEach(b=>{
+        b.classList.toggle("active", b.dataset.tab===t);
+      });
+      el.menuTab.style.display = (t==="menu") ? "" : "none";
+      el.stopTab.style.display = (t==="stop") ? "" : "none";
+      if (t==="stop") renderStopList();
+    }
+
+    /**********************
+     * Product add/delete (optional)
+     **********************/
+    function renderNewProductCats(){
+      el.newMainCat.innerHTML = MAIN_CATS
+        .filter(c=>c!=="Все")
+        .map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+
+      el.newBottleSub.innerHTML = BOTTLE_SUB.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
+    }
+
+    function sheetCatForNewProduct(mainCat){
+      // map UI mainCat back to original sheet categories where possible
+      // - Kegs: "Краны" tracked as keg; cat can be "Краны"
+      // - Bottles/Cans: use "Пиво в бутылках" except sub "Безалкогольные" -> "Безалкогольные"
+      // - Others: "Тара", "Рыба (за кг)", "Закуски"
+      if (mainCat === "Тара") return "Тара";
+      if (mainCat === "Рыба") return "Рыба (за кг)";
+      if (mainCat === "Краны") return "Краны";
+      if (mainCat === "Бутылки/Банки") return "Пиво в бутылках";
+      return "Закуски";
+    }
+
+    async function addProduct(){
+      try{
+        const name = String(el.newName.value||"").trim();
+        const price = Number(el.newPrice.value);
+        const deliveryPrice = (el.newDeliveryPrice.value==="" ? "" : Number(el.newDeliveryPrice.value));
+        const mainCat = el.newMainCat.value;
+        const sub = el.newBottleSub.value;
+        const type = el.newType.value;
+        const track = el.newTrack.value;
+        const kegSizeL = Number(el.newKegSize.value||0);
+        const kegsSpare = Number(el.newKegSpares.value||0);
+
+        if (!name || !Number.isFinite(price)){
+          alert("Заполни название и цену.");
+          return;
+        }
+
+        // Choose sheet cat:
+        let sheetCat = sheetCatForNewProduct(mainCat);
+        if (mainCat === "Бутылки/Банки" && sub === "Безалкогольные") sheetCat = "Безалкогольные";
+
+        const payload = {
+          path:"productUpsert",
+          product:{
+            name,
+            cat: sheetCat,
+            type,
+            price,
+            deliveryPrice: (deliveryPrice==="" || !Number.isFinite(deliveryPrice)) ? "" : deliveryPrice,
+            track,
+            stopWhenZero: "TRUE",
+            kegSizeL: track==="keg" ? (kegSizeL||30) : "",
+            kegsSpare: track==="keg" ? (kegsSpare||2) : ""
+          }
+        };
+
+        el.syncStatus.textContent = "…";
+        const res = await apiPost(payload);
+        applyStateToUI(res.state);
+
+        el.newName.value=""; el.newPrice.value=""; el.newDeliveryPrice.value="";
+        el.newKegSize.value=""; el.newKegSpares.value="";
+        alert("Товар добавлен.");
+      }catch(err){
+        alert("Ошибка добавления: " + err);
+      }
+    }
+
+    function renderDeleteSelect(){
+      const sorted = catalog.slice().sort((a,b)=>{
+        if (a.mainCat==="Краны" && b.mainCat==="Краны") return parseTapNumber(a.name)-parseTapNumber(b.name);
+        return a.name.localeCompare(b.name,"ru");
+      });
+
+      el.deleteSelect.innerHTML = sorted.map(p=>{
+        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
+        const stopTag = stopSet.has(p.id) ? " [STOP]" : "";
+        return `<option value="${p.id}">${p.mainCat}${p.mainCat==="Бутылки/Банки" ? " · "+p.subCat : ""} · ${p.name}${stopTag} — ${money(p.price)}${suffix}</option>`;
+      }).join("");
+    }
+
+    async function deleteProduct(){
+      try{
+        const id = el.deleteSelect.value;
+        if (!id) return;
+        if (!confirm("Удалить выбранный товар из таблицы?")) return;
+
+        el.syncStatus.textContent = "…";
+        const res = await apiPost({ path:"productDelete", productId:id });
+        applyStateToUI(res.state);
+
+        alert("Удалено.");
+      }catch(err){
+        alert("Ошибка удаления: " + err);
+      }
+    }
+
+    /**********************
+     * Events
+     **********************/
+    // Search
     el.search.addEventListener("input", ()=>{
       const items = suggest(el.search.value);
       showSuggest(items);
-      const p = findBestMatchByNameOrTapInput(el.search.value);
-      if (p) applyQtyInputForProduct(p);
+      // qty step depends on current best match
+      // (no autofocus)
     });
 
     el.search.addEventListener("keydown", (e)=>{
@@ -817,11 +1106,8 @@
         e.preventDefault();
         const p = suggestItems[activeSuggestIndex] || findBestMatchByNameOrTapInput(el.search.value);
         if (!p) return;
-        applyQtyInputForProduct(p);
-        const q = interpretQtyInput(p);
-        if (!q) return;
-        addToCart(p, q);
-        el.search.focus(); el.search.select();
+        addToCart(p, qtyAddValue);
+        hideSuggest();
       }
     });
 
@@ -831,54 +1117,37 @@
       const idx = Number(btn.dataset.idx);
       const p = suggestItems[idx];
       if (!p) return;
-      el.search.value = p.name;
+      el.search.value = p.name; // but do not auto-focus elsewhere
       hideSuggest();
-      applyQtyInputForProduct(p);
-      const q = interpretQtyInput(p);
-      if (!q) return;
-      addToCart(p, q);
-      el.search.focus(); el.search.select();
+      addToCart(p, qtyAddValue);
     });
 
+    document.addEventListener("click", (e)=>{
+      if (!e.target.closest(".searchBox")) hideSuggest();
+    });
+
+    // QtyAdd (no keyboard)
+    el.qtyMinus.addEventListener("click", ()=>adjustQtyAdd(-1));
+    el.qtyPlus.addEventListener("click", ()=>adjustQtyAdd(+1));
+
+    // Add button
     el.addBtn.addEventListener("click", ()=>{
       const p = findBestMatchByNameOrTapInput(el.search.value);
       if (!p){
         alert("Не нашла товар (или он на стопе).");
         return;
       }
-      applyQtyInputForProduct(p);
-      const q = interpretQtyInput(p);
-      if (!q) return;
-      addToCart(p, q);
-      el.search.focus(); el.search.select();
+      addToCart(p, qtyAddValue);
+      hideSuggest();
     });
 
-    el.catBar.addEventListener("click", (e)=>{
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      catFilter = btn.dataset.cat;
-      renderCatBar();
-      renderQuick();
-    });
-
-    el.quickGrid.addEventListener("click", (e)=>{
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      const id = btn.dataset.qid;
-      const p = findById(id);
-      if (!p || !isAvailable(p)) return;
-      applyQtyInputForProduct(p);
-      const q = interpretQtyInput(p);
-      if (!q) return;
-      addToCart(p, q);
-      el.search.focus(); el.search.select();
-    });
-
+    // Cart +/-/delete
     el.cartBody.addEventListener("click", (e)=>{
       const btn = e.target.closest("button");
       if (!btn) return;
       const act = btn.dataset.act;
       const idx = Number(btn.dataset.i);
+
       if (act==="del"){
         cart.splice(idx,1);
         renderCart();
@@ -889,58 +1158,89 @@
       }
     });
 
-    el.cartBody.addEventListener("change", (e)=>{
-      const inp = e.target.closest("input[data-act='set']");
-      if (!inp) return;
-      setItemQty(Number(inp.dataset.i), inp.value);
-    });
+    // Payment buttons: set method and pay
+    el.cashBtn.addEventListener("click", ()=>{ setPayment("cash"); pay(); });
+    el.cardBtn.addEventListener("click", ()=>{ setPayment("card"); pay(); });
+    el.deliveryBtn.addEventListener("click", ()=>{ setPayment("delivery"); pay(); });
 
-    el.payBtn.addEventListener("click", pay);
+    // Copy / clear / close shift
     el.copyBtn.addEventListener("click", copyReceipt);
-
     el.clearBtn.addEventListener("click", ()=>{
       if (!cart.length) return;
       if (!confirm("Очистить чек?")) return;
       cart = [];
       renderCart();
     });
+    el.closeShiftBtn.addEventListener("click", closeShift);
 
+    // Refresh
     el.refreshBtn.addEventListener("click", ()=>refreshState().catch(err=>alert("Ошибка: "+err)));
 
-    document.addEventListener("click", (e)=>{ if (!e.target.closest(".searchBox")) hideSuggest(); });
-
-    document.addEventListener("keydown", (e)=>{
-      if (e.ctrlKey && e.key.toLowerCase()==="l"){
-        e.preventDefault();
-        el.search.focus(); el.search.select();
-      }
-    });
-
-    el.qtyMode.addEventListener("change", ()=>{
-      const mode = el.qtyMode.value;
-      if (mode==="pcs"){ el.qtyAdd.step="1"; el.qtyAdd.min="1"; }
-      if (mode==="l"){ el.qtyAdd.step="0.1"; el.qtyAdd.min="0.1"; }
-      if (mode==="g"){ el.qtyAdd.step="50"; el.qtyAdd.min="1"; }
-      if (mode==="auto"){
-        const p = findBestMatchByNameOrTapInput(el.search.value);
-        if (p) applyQtyInputForProduct(p);
-      }
-    });
-
+    // Tabs
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click", ()=>setTab(b.dataset.tab));
     });
 
-    el.addProductBtn.addEventListener("click", ()=>addProduct().catch(err=>alert("Ошибка: "+err)));
-    el.deleteBtn.addEventListener("click", ()=>deleteProduct().catch(err=>alert("Ошибка: "+err)));
+    // Menu category bar clicks
+    el.catBar.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-cat]");
+      if (!btn) return;
+      catFilter = btn.dataset.cat;
+      renderMenuCats();
+      renderQuick();
+    });
 
-    // =========================
-    // Init
-    // =========================
+    el.subBar.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-sub]");
+      if (!btn) return;
+      bottleSub = btn.dataset.sub;
+      renderMenuCats();
+      renderQuick();
+    });
+
+    // Stop category bar clicks
+    el.stopCatBar.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-stopcat]");
+      if (!btn) return;
+      stopCatFilter = btn.dataset.stopcat;
+      renderStopCats();
+      renderStopList();
+    });
+
+    el.stopSubBar.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-stopsub]");
+      if (!btn) return;
+      stopBottleSub = btn.dataset.stopsub;
+      renderStopCats();
+      renderStopList();
+    });
+
+    // Quick add button clicks
+    el.quickGrid.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-qid]");
+      if (!btn) return;
+      const id = btn.dataset.qid;
+      const p = findById(id);
+      if (!p || !isAvailable(p)) return;
+      addToCart(p, qtyAddValue);
+    });
+
+    // Product add/delete
+    el.addProductBtn.addEventListener("click", addProduct);
+    el.deleteBtn.addEventListener("click", deleteProduct);
+
+    /**********************
+     * Init
+     **********************/
     (async ()=>{
       try{
-        await refreshState();
+        setPayment("cash");
+        setQtyAdd(1);
         setTab("menu");
+        renderMenuCats();
+        renderStopCats();
+        renderNewProductCats();
+        await refreshState();
       }catch(err){
         el.syncStatus.textContent = "ERR";
         alert("Не удалось подключиться к таблице. Проверь API_URL / TOKEN.\n\n"+err);
