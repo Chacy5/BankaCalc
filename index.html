@@ -200,6 +200,18 @@
     /**********************
      * Helpers
      **********************/
+      function tapNumber(name){
+  const m = String(name||"").match(/кран\s*(\d+)/i);
+  return m ? Number(m[1]) : 9999;
+    }
+      function sortProducts(a,b){
+  // Краны всегда по номеру (Кран 1,2,3...)
+  if (a.mainCat==="Краны" && b.mainCat==="Краны"){
+    return tapNumber(a.name) - tapNumber(b.name);
+  }
+  // Остальное — по имени
+  return a.name.localeCompare(b.name, "ru");
+}
     function money(n){
       const x = Math.round((Number(n)||0)*100)/100;
       return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -606,7 +618,7 @@
         else if (n.includes(q)) s = 2;
         return {p,s};
       }).filter(x=>x.s>0)
-        .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
+        .sort((a,b)=> b.s-a.s || sortProducts(a.p, b.p))
         .slice(0, 14)
         .map(x=>x.p);
 
@@ -658,7 +670,7 @@
 
     function renderQuick(){
       let pool = availableFiltered().slice();
-      pool.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+        pool.sort(sortProducts);
       pool = pool.slice(0, 24);
 
       el.quickGrid.innerHTML = pool.map(p=>{
@@ -672,7 +684,7 @@
 
     function renderStopList(){
       const list = stoppedFiltered().slice();
-      list.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+      list.sort(sortProducts);
 
       if (!list.length){
         el.stopList.innerHTML = `<div class="muted">Сейчас ничего не на стопе 🎉</div>`;
