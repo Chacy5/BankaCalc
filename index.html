@@ -16,12 +16,12 @@
     h1{font-size:16px;margin:0 0 10px 0;font-weight:1000}
     h2{font-size:13px;margin:12px 0 8px 0;color:var(--muted);font-weight:900}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    input, button, select, textarea{
+    input, button, select{
       background:#0f1117;color:var(--text);
       border:1px solid var(--line);border-radius:12px;padding:12px 12px;outline:none;
       font-size:15px;
     }
-    input:focus, select:focus, textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(111,237,209,.12)}
+    input:focus, select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(111,237,209,.12)}
     button{cursor:pointer;user-select:none}
     button.primary{border-color:rgba(111,237,209,.55);background:rgba(111,237,209,.14)}
     button.primary:hover{background:rgba(111,237,209,.22)}
@@ -30,14 +30,11 @@
     button.danger:hover{background:rgba(255,92,92,.22)}
     button.warn{border-color:rgba(255,209,102,.55);background:rgba(255,209,102,.12)}
     button.warn:hover{background:rgba(255,209,102,.18)}
-
     .muted{color:var(--muted);font-size:12px}
     .badge{color:var(--acc);font-weight:1000}
     .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
-    .kbd{border:1px solid var(--line);border-bottom-width:2px;padding:1px 6px;border-radius:6px;font-size:11px;color:var(--muted)}
     .hr{height:1px;background:var(--line);margin:12px 0}
 
-    /* Search suggest */
     .searchBox{position:relative;flex:1;min-width:280px}
     .suggest{
       position:absolute;left:0;right:0;top:52px;background:#0f1117;border:1px solid var(--line);
@@ -51,28 +48,22 @@
     .suggest button:hover,.suggest button.active{background:rgba(111,237,209,.10)}
     .priceTag{color:var(--acc);font-weight:1000}
 
-    /* Cart table */
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:14px;vertical-align:middle}
     th{color:var(--muted);font-weight:1000;font-size:12px}
     .right{text-align:right}
 
-    /* Qty controls */
     .qty{display:flex;align-items:center;gap:8px;justify-content:flex-end}
     .qty button{padding:10px 12px;border-radius:12px;font-size:16px;min-width:44px}
-    .qty input{
-      width:92px;text-align:right;padding:10px 10px;border-radius:12px;font-size:15px;
-    }
-    .qty input[readonly]{opacity:1}
+    .qty input{width:92px;text-align:right;padding:10px 10px;border-radius:12px;font-size:15px}
     .unit{min-width:26px;text-align:left}
 
-    .footerTotal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}
+    .footerTotal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
     .total{font-size:22px;font-weight:1100}
 
     .gridBtns{display:flex;gap:10px;flex-wrap:wrap}
     .gridBtns button{min-width:160px}
 
-    /* Tabs & categories */
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{padding:10px 12px;border-radius:999px}
     .tab.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
@@ -81,19 +72,16 @@
     .catBtn.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
     .subWrap{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:6px}
 
-    /* Quick buttons */
     .quickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
     .qbtn{padding:12px 12px;border-radius:14px;text-align:left}
     .qbtn .name{font-weight:1000;font-size:15px}
     .qbtn .meta{font-size:12px;color:var(--muted);margin-top:4px}
 
-    /* Stop list */
     .stopList{display:flex;flex-direction:column;gap:8px}
     .stopItem{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#0f1117}
     .stopItem .title{font-weight:1000}
     .stopItem .meta{font-size:12px;color:var(--muted);margin-top:4px}
 
-    /* Tablet-friendly */
     @media (max-width: 980px){
       .wrap{grid-template-columns:1fr}
       .quickGrid{grid-template-columns:1fr}
@@ -115,10 +103,10 @@
           <div id="suggest" class="suggest"></div>
         </div>
 
-        <!-- qty add: readonly to avoid auto keyboard -->
         <div class="row" style="gap:8px">
           <button id="qtyMinus" class="ghost" type="button">−</button>
-          <input id="qtyAdd" type="text" value="1" readonly inputmode="none" style="width:86px;text-align:right" />
+          <!-- ВАЖНО: теперь редактируемое поле, клавиатура появляется при тапе -->
+          <input id="qtyAdd" type="number" step="1" min="0" value="1" style="width:90px;text-align:right" inputmode="decimal" />
           <button id="qtyPlus" class="ghost" type="button">+</button>
         </div>
 
@@ -146,14 +134,21 @@
 
       <div class="footerTotal">
         <div class="muted">Позиций: <span id="itemsCount" class="badge">0</span></div>
+
+        <div class="muted">
+          Скидка: <span id="discountLabel" class="badge">0</span> GEL
+          <button id="discountBtn" class="ghost" type="button" style="margin-left:8px">Скидка</button>
+          <button id="discountClearBtn" class="ghost" type="button">Сброс</button>
+        </div>
+
         <div class="total">Итого: <span id="grandTotal">0</span> GEL</div>
       </div>
 
-      <!-- Payment buttons -->
       <div class="gridBtns" style="margin-top:12px">
         <button id="cashBtn" class="primary" type="button">Наличные</button>
         <button id="cardBtn" class="ghost" type="button">Карта</button>
         <button id="deliveryBtn" class="ghost" type="button">Доставка</button>
+        <button id="corpBtn" class="ghost" type="button">Корпоративный</button>
 
         <button id="copyBtn" class="ghost" type="button">Копировать чек</button>
         <button id="clearBtn" class="danger" type="button">Очистить</button>
@@ -165,7 +160,7 @@
 
       <div class="muted" style="margin-top:10px">
         * “Доставка” считает по <b>deliveryPrice</b> (если есть), иначе по обычной цене.<br/>
-        * Разлив списывает литры из кег, при переливе спросит сколько налили из новой кеги.
+        * “Корпоративный” записывает сумму на сотрудника. Оплата = 0 для клиента.
       </div>
     </div>
 
@@ -198,76 +193,25 @@
       </div>
 
       <div class="hr"></div>
-
-      <!-- Optional: simple product add/delete (kept from previous version) -->
-      <h2>Товары (быстро)</h2>
-      <div class="muted" style="margin-bottom:8px">
-        Обычно редактируй каталог в Google Sheets. Тут — быстрый добав/удал.
-      </div>
-
-      <div class="row" style="gap:8px">
-        <input id="newName" placeholder="Название" style="flex:1;min-width:160px" />
-        <input id="newPrice" type="number" min="0" step="0.01" placeholder="Цена (GEL)" style="width:140px" />
-        <input id="newDeliveryPrice" type="number" min="0" step="0.01" placeholder="Доставка (GEL)" style="width:160px" />
-      </div>
-      <div class="row" style="gap:8px;margin-top:8px">
-        <select id="newMainCat" style="flex:1;min-width:180px"></select>
-        <select id="newBottleSub" style="width:180px"></select>
-        <select id="newType" style="width:160px">
-          <option value="unit">Обычное (шт)</option>
-          <option value="per_liter">Цена за 1л</option>
-          <option value="per_kg">Цена за 1кг</option>
-        </select>
-      </div>
-      <div class="row" style="gap:8px;margin-top:8px">
-        <select id="newTrack" style="width:220px">
-          <option value="count">Списание: шт</option>
-          <option value="liters">Списание: литры</option>
-          <option value="grams">Списание: граммы</option>
-          <option value="keg">Списание: кеги (разлив)</option>
-        </select>
-        <input id="newKegSize" type="number" min="0" step="1" placeholder="Кега (л)" style="width:120px" />
-        <input id="newKegSpares" type="number" min="0" step="1" placeholder="Запас кег" style="width:120px" />
-        <button id="addProductBtn" class="primary" type="button">Добавить</button>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <select id="deleteSelect" style="width:100%"></select>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button id="deleteBtn" class="danger" type="button">Удалить выбранный</button>
-      </div>
+      <div class="muted">Редактируй каталог в Google Sheets (выпадашки). Тут — только касса.</div>
     </div>
   </div>
 
   <script>
     /**********************
-     * CONFIG (fill these)
+     * CONFIG
      **********************/
-    const API_URL = "https://script.google.com/macros/s/AKfycbxYhpV0nps-36Os_Di_OE-lLg1_Yh0NwXsq89Kv7rZ90wZMF_pNIau3Z--UAJFcwJmm/exec";
-    const API_TOKEN = "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwdmAzHAQVX9neR75OIukyGZE9upGfoChiN65FNcJurg0lKulI6e0v9t9HdW7wuD1sZ/exec";
+    const API_TOKEN = "BankaBatumi2026Batumi390";
 
     /**********************
-     * Category scheme
+     * Categories
      **********************/
-    const MAIN_CATS = [
-      "Все",
-      "Краны",
-      "Тара",
-      "Бутылки/Банки",
-      "Рыба",
-      "Снеки",
-      "Мясо",
-      "Чипсы"
-    ];
+    const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
     const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose"];
 
-    // UI category state
-    let catFilter = "Все";
-    let bottleSub = "IPA/APA";
-
-    let stopCatFilter = "Все";
-    let stopBottleSub = "IPA/APA";
+    // Corporate employees
+    const EMPLOYEES = ["Ви","Виталий","Зура","Джули"];
 
     /**********************
      * Helpers
@@ -283,6 +227,10 @@
     }
     function uuid(){
       return (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+"-"+Math.random().toString(16).slice(2));
+    }
+    function parseNum(x){
+      if (x===null || x===undefined) return NaN;
+      return Number(String(x).replace(",", ".").trim());
     }
 
     // POST without CORS preflight
@@ -305,31 +253,9 @@
     }
 
     /**********************
-     * State
-     **********************/
-    let state = null;        // from Sheets
-    let catalog = [];        // products with deliveryPrice
-    let stopSet = new Set(); // stopIds
-
-    // payment: cash | card | delivery
-    let paymentMethod = "cash";
-
-    // cart items:
-    // { productId, name, mainCat, subCat, type, track, price, deliveryPrice, qtyPricing, trackQty, displayQty, displayUnit }
-    let cart = [];
-
-    // Search suggest
-    let suggestItems = [];
-    let activeSuggestIndex = -1;
-
-    // QtyAdd numeric state (we store as number; display as string)
-    let qtyAddValue = 1;
-
-    /**********************
      * DOM
      **********************/
     const el = {
-      // left
       search: document.getElementById("search"),
       suggest: document.getElementById("suggest"),
       qtyAdd: document.getElementById("qtyAdd"),
@@ -341,43 +267,61 @@
       grandTotal: document.getElementById("grandTotal"),
       syncStatus: document.getElementById("syncStatus"),
       payModeLabel: document.getElementById("payModeLabel"),
+
+      discountLabel: document.getElementById("discountLabel"),
+      discountBtn: document.getElementById("discountBtn"),
+      discountClearBtn: document.getElementById("discountClearBtn"),
+
       cashBtn: document.getElementById("cashBtn"),
       cardBtn: document.getElementById("cardBtn"),
       deliveryBtn: document.getElementById("deliveryBtn"),
+      corpBtn: document.getElementById("corpBtn"),
       copyBtn: document.getElementById("copyBtn"),
       clearBtn: document.getElementById("clearBtn"),
       closeShiftBtn: document.getElementById("closeShiftBtn"),
 
-      // right
       refreshBtn: document.getElementById("refreshBtn"),
       menuTab: document.getElementById("menuTab"),
       stopTab: document.getElementById("stopTab"),
       catBar: document.getElementById("catBar"),
       subBar: document.getElementById("subBar"),
       quickGrid: document.getElementById("quickGrid"),
-
       stopCount: document.getElementById("stopCount"),
       stopCatBar: document.getElementById("stopCatBar"),
       stopSubBar: document.getElementById("stopSubBar"),
       stopList: document.getElementById("stopList"),
-
-      // product add/delete
-      newName: document.getElementById("newName"),
-      newPrice: document.getElementById("newPrice"),
-      newDeliveryPrice: document.getElementById("newDeliveryPrice"),
-      newMainCat: document.getElementById("newMainCat"),
-      newBottleSub: document.getElementById("newBottleSub"),
-      newType: document.getElementById("newType"),
-      newTrack: document.getElementById("newTrack"),
-      newKegSize: document.getElementById("newKegSize"),
-      newKegSpares: document.getElementById("newKegSpares"),
-      addProductBtn: document.getElementById("addProductBtn"),
-      deleteSelect: document.getElementById("deleteSelect"),
-      deleteBtn: document.getElementById("deleteBtn"),
     };
 
     /**********************
-     * Category mapping
+     * State
+     **********************/
+    let state = null;
+    let catalog = [];
+    let stopSet = new Set();
+
+    // payment: cash | card | delivery | corporate
+    let paymentMethod = "cash";
+    let corporateEmployee = "";        // chosen employee
+    let corporateDiscountPercent = 0;  // percent discount for corporate
+
+    // discount for any receipt (amount in GEL)
+    let discountAmount = 0;
+
+    // cart
+    let cart = [];
+
+    // Suggest state
+    let suggestItems = [];
+    let activeSuggestIndex = -1;
+
+    // category filters
+    let catFilter = "Все";
+    let bottleSub = "IPA/APA";
+    let stopCatFilter = "Все";
+    let stopBottleSub = "IPA/APA";
+
+    /**********************
+     * Category mapping (same logic as before)
      **********************/
     function parseTapNumber(name){
       const m = String(name||"").match(/кран\s*(\d+)/i);
@@ -385,21 +329,14 @@
     }
 
     function mapCategory(p){
-      // p fields: name, cat (raw from sheet), track, type
       const name = String(p.name||"");
       const n = normalize(name);
       const rawCat = String(p.cat||"");
 
-      // Kegs / taps
       if (p.track === "keg") return { main:"Краны" };
-
-      // Tare
       if (rawCat === "Тара") return { main:"Тара" };
-
-      // Fish
       if (rawCat.includes("Рыба")) return { main:"Рыба" };
 
-      // Bottles/cans group
       if (rawCat === "Пиво в бутылках" || rawCat === "Безалкогольные"){
         if (n.includes("медов") || n.includes("mead")) return { main:"Бутылки/Банки", sub:"Медовухи" };
         if (rawCat === "Безалкогольные" || n.includes("0%") || n.includes("безалког")) return { main:"Бутылки/Банки", sub:"Безалкогольные" };
@@ -410,20 +347,13 @@
         return { main:"Бутылки/Банки", sub:"Классика" };
       }
 
-      // Chips category (snacks that are chips)
       if (n.includes("chips") || n.includes("чипс") || n.includes("bulba chips") || n.includes("mega chips")){
         return { main:"Чипсы" };
       }
-
-      // Meat
       if (n.includes("джерки") || n.includes("колбас") || n.includes("кабанос")){
         return { main:"Мясо" };
       }
-
-      // Snacks (everything else from Закуски)
       if (rawCat === "Закуски") return { main:"Снеки" };
-
-      // Fallback
       return { main:"Снеки" };
     }
 
@@ -435,18 +365,46 @@
     function passesFilter(p, main, sub){
       if (main === "Все") return true;
       if (p.mainCat !== main) return false;
-      if (main === "Бутылки/Банки"){
-        return (p.subCat || "Классика") === sub;
-      }
+      if (main === "Бутылки/Банки") return (p.subCat || "Классика") === sub;
       return true;
     }
 
-    function isAvailable(p){
-      return !stopSet.has(p.id);
+    function isAvailable(p){ return !stopSet.has(p.id); }
+    function findById(id){ return catalog.find(p=>p.id===id) || null; }
+
+    /**********************
+     * Apply state
+     **********************/
+    function applyStateToUI(newState){
+      state = newState;
+      catalog = (state.products || []).map(p => withMapped({
+        id: String(p.id),
+        name: p.name,
+        cat: p.cat,
+        type: p.type || "unit",
+        price: Number(p.price||0),
+        deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
+        track: p.track || "count"
+      }));
+      stopSet = new Set(state.stopIds || []);
+      el.stopCount.textContent = String(stopSet.size);
+      el.syncStatus.textContent = "OK";
+
+      renderMenuCats();
+      renderStopCats();
+      renderQuick();
+      renderStopList();
+      renderCart();
+    }
+
+    async function refreshState(){
+      el.syncStatus.textContent = "…";
+      const data = await apiGet("state");
+      applyStateToUI(data);
     }
 
     /**********************
-     * UI: payment
+     * Payment + prices
      **********************/
     function setPayment(method){
       paymentMethod = method;
@@ -460,96 +418,298 @@
       el.deliveryBtn.classList.toggle("primary", method==="delivery");
       el.deliveryBtn.classList.toggle("ghost", method!=="delivery");
 
-      el.payModeLabel.textContent = (method==="cash") ? "Наличные" : (method==="card" ? "Карта" : "Доставка");
+      el.corpBtn.classList.toggle("primary", method==="corporate");
+      el.corpBtn.classList.toggle("ghost", method!=="corporate");
+
+      const label =
+        method==="cash" ? "Наличные" :
+        method==="card" ? "Карта" :
+        method==="delivery" ? "Доставка" :
+        "Корпоративный";
+      el.payModeLabel.textContent = label;
+
       renderCart();
     }
 
     function unitPriceFor(item){
-      if (paymentMethod !== "delivery") return item.price;
-      const dp = item.deliveryPrice;
-      if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0){
-        return Number(dp);
+      // corporate: считаем “стоимость” как обычно, просто клиент платит 0 (на экране можно показать net отдельно)
+      if (paymentMethod === "delivery"){
+        const dp = item.deliveryPrice;
+        if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0) return Number(dp);
       }
       return item.price;
     }
 
-    /**********************
-     * QtyAdd (no keyboard)
-     **********************/
-    function setQtyAdd(v){
-      if (!Number.isFinite(v) || v <= 0) v = 1;
-      // keep friendly formatting: up to 2 decimals
-      v = Math.round(v * 100) / 100;
-      qtyAddValue = v;
-      el.qtyAdd.value = String(v).replace(".", ".");
+    function lineSum(item){
+      return Math.round(unitPriceFor(item) * item.qtyPricing * 100) / 100;
     }
 
-    function stepForCurrentInput(){
-      const p = findBestMatchByNameOrTapInput(el.search.value);
+    function grossTotal(){
+      return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
+    }
+
+    function effectiveDiscountAmount(){
+      let d = Number(discountAmount||0);
+      if (!Number.isFinite(d) || d < 0) d = 0;
+
+      // corporate percent discount (additional)
+      if (paymentMethod === "corporate" && corporateDiscountPercent > 0){
+        const pct = Math.max(0, Math.min(100, Number(corporateDiscountPercent)));
+        const extra = grossTotal() * (pct/100);
+        d = d + extra;
+      }
+
+      // cap by gross
+      const g = grossTotal();
+      if (d > g) d = g;
+      return Math.round(d*100)/100;
+    }
+
+    function netTotal(){
+      const g = grossTotal();
+      const d = effectiveDiscountAmount();
+      return Math.round((g - d)*100)/100;
+    }
+
+    function displayedTotal(){
+      // cash/card/delivery show net
+      if (paymentMethod !== "corporate") return netTotal();
+
+      // corporate: клиент платит 0
+      return 0;
+    }
+
+    /**********************
+     * QtyAdd behavior
+     **********************/
+    function getQtyAdd(){
+      const v = parseNum(el.qtyAdd.value);
+      if (!Number.isFinite(v) || v <= 0) return 1;
+      return v;
+    }
+
+    function bestMatchFromInput(){
+      const t = normalize(el.search.value);
+      if (!t) return null;
+
+      const pool = catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
+
+      const exact = pool.find(p=>normalize(p.name)===t);
+      if (exact) return exact;
+
+      const m = t.match(/кран\s*(\d{1,2})/);
+      if (m){
+        const num = m[1];
+        const tap = pool.find(p=>normalize(p.name).includes("кран "+num));
+        if (tap) return tap;
+      }
+
+      return suggestItems[0] || null;
+    }
+
+    function stepForProduct(p){
       if (!p) return 1;
-
-      // grams products: 50g
-      if (p.type === "per_kg" || p.track === "grams") return 50;
-
-      // liters: 0.5
-      if (p.type === "per_liter" || p.track === "liters" || p.track === "keg") return 0.5;
-
-      // default pcs
-      return 1;
+      if (p.type==="per_kg" || p.track==="grams") return 50; // grams
+      if (p.type==="per_liter" || p.track==="liters" || p.track==="keg") return 0.5; // liters
+      return 1; // pcs
     }
 
     function adjustQtyAdd(dir){
-      const step = stepForCurrentInput();
-      let v = qtyAddValue;
+      const p = bestMatchFromInput();
+      const step = stepForProduct(p);
+      let v = getQtyAdd();
 
       if (step === 0.5){
         v = Math.max(0.5, Math.round((v + dir*0.5)*10)/10);
       } else if (step === 50){
-        v = Math.max(50, Math.round(v + dir*50));
+        v = Math.max(1, Math.round(v + dir*50));
       } else {
         v = Math.max(1, Math.round(v + dir));
       }
-      setQtyAdd(v);
+      el.qtyAdd.value = String(v);
     }
 
     /**********************
-     * Catalog / state sync
+     * Cart logic
      **********************/
-    function applyStateToUI(newState){
-      state = newState;
-
-      // map products
-      catalog = (state.products || []).map(p => withMapped({
-        id: String(p.id),
-        name: p.name,
-        cat: p.cat,
-        type: p.type || "unit",
-        price: Number(p.price||0),
-        deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
-        track: p.track || "count"
-      }));
-
-      stopSet = new Set(state.stopIds || []);
-      el.stopCount.textContent = String(stopSet.size);
-      el.syncStatus.textContent = "OK";
-
-      renderMenuCats();
-      renderStopCats();
-      renderQuick();
-      renderStopList();
-      renderDeleteSelect();
-      renderNewProductCats();
+    function interpretQtyForProduct(p, qtyValue){
+      if (p.type==="per_kg" || p.track==="grams"){
+        const grams = Math.max(1, Math.round(qtyValue));
+        return { displayQty: grams, displayUnit:"г", trackQty: grams, qtyPricing: grams/1000 };
+      }
+      if (p.type==="per_liter" || p.track==="liters" || p.track==="keg"){
+        const liters = Math.max(0.5, Math.round(qtyValue*10)/10);
+        return { displayQty: liters, displayUnit:"л", trackQty: liters, qtyPricing: liters };
+      }
+      const pcs = Math.max(1, Math.round(qtyValue));
+      return { displayQty: pcs, displayUnit:"шт", trackQty: pcs, qtyPricing: pcs };
     }
 
-    async function refreshState(){
-      el.syncStatus.textContent = "…";
-      const data = await apiGet("state");
-      applyStateToUI(data);
+    function addToCart(p, qtyValue){
+      const q = interpretQtyForProduct(p, qtyValue);
+
+      const existing = cart.find(x => x.productId===p.id && x.displayUnit===q.displayUnit);
+      if (existing){
+        existing.trackQty = Math.round((existing.trackQty + q.trackQty)*100)/100;
+        existing.qtyPricing = Math.round((existing.qtyPricing + q.qtyPricing)*100)/100;
+        existing.displayQty = (existing.displayUnit==="г") ? Math.round(existing.trackQty) : existing.trackQty;
+      } else {
+        cart.push({
+          productId: p.id,
+          name: p.name,
+          mainCat: p.mainCat,
+          subCat: p.subCat,
+          type: p.type,
+          track: p.track,
+          price: p.price,
+          deliveryPrice: p.deliveryPrice,
+          trackQty: q.trackQty,
+          qtyPricing: q.qtyPricing,
+          displayQty: q.displayQty,
+          displayUnit: q.displayUnit
+        });
+      }
+      renderCart();
+    }
+
+    function adjustItem(idx, dir){
+      const it = cart[idx]; if (!it) return;
+
+      if (it.displayUnit === "г"){
+        const newG = Math.max(1, Math.round(Number(it.displayQty) + dir*50));
+        it.displayQty = newG; it.trackQty = newG; it.qtyPricing = newG/1000;
+      } else if (it.displayUnit === "л"){
+        const newL = Math.max(0.5, Math.round((Number(it.displayQty) + dir*0.5)*10)/10);
+        it.displayQty = newL; it.trackQty = newL; it.qtyPricing = newL;
+      } else {
+        const newPcs = Math.max(1, Math.round(Number(it.displayQty) + dir));
+        it.displayQty = newPcs; it.trackQty = newPcs; it.qtyPricing = newPcs;
+      }
+      renderCart();
+    }
+
+    function setItemQtyFromInput(idx, value){
+      const it = cart[idx]; if (!it) return;
+      const v = parseNum(value);
+      if (!Number.isFinite(v) || v <= 0) return;
+
+      if (it.displayUnit==="г"){
+        const grams = Math.max(1, Math.round(v));
+        it.displayQty = grams; it.trackQty = grams; it.qtyPricing = grams/1000;
+      } else if (it.displayUnit==="л"){
+        const liters = Math.max(0.5, Math.round(v*10)/10);
+        it.displayQty = liters; it.trackQty = liters; it.qtyPricing = liters;
+      } else {
+        const pcs = Math.max(1, Math.round(v));
+        it.displayQty = pcs; it.trackQty = pcs; it.qtyPricing = pcs;
+      }
+      renderCart();
+    }
+
+    function renderCart(){
+      el.cartBody.innerHTML = cart.map((it, idx)=>{
+        const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
+        const sum = lineSum(it);
+        const showPrice = unitPriceFor(it);
+
+        return `<tr>
+          <td>
+            <div style="font-weight:1000">${esc(it.name)}</div>
+            <div class="muted">${esc(it.mainCat)}${it.mainCat==="Бутылки/Банки" ? " · "+esc(it.subCat) : ""}</div>
+          </td>
+          <td class="right"><span class="priceTag">${money(showPrice)}${suffix}</span></td>
+          <td class="right">
+            <div class="qty">
+              <button type="button" data-act="dec" data-i="${idx}">−</button>
+              <input type="number" step="0.1" inputmode="decimal" value="${esc(it.displayQty)}" data-act="qty" data-i="${idx}" />
+              <button type="button" data-act="inc" data-i="${idx}">+</button>
+              <span class="muted unit">${esc(it.displayUnit)}</span>
+            </div>
+          </td>
+          <td class="right"><b>${money(sum)}</b></td>
+          <td class="right"><button class="danger" type="button" data-act="del" data-i="${idx}">×</button></td>
+        </tr>`;
+      }).join("");
+
+      el.itemsCount.textContent = String(cart.length);
+      el.discountLabel.textContent = money(effectiveDiscountAmount());
+      el.grandTotal.textContent = money(displayedTotal());
     }
 
     /**********************
-     * Menu cats + subcats
+     * Suggest
      **********************/
+    function showSuggest(items){
+      suggestItems = items;
+      activeSuggestIndex = items.length ? 0 : -1;
+
+      if (!items.length){
+        el.suggest.style.display="none";
+        el.suggest.innerHTML="";
+        return;
+      }
+
+      el.suggest.innerHTML = items.map((p,i)=>{
+        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
+        return `<button type="button" data-idx="${i}" class="${i===activeSuggestIndex?"active":""}">
+          <span class="muted">${esc(p.mainCat)}${p.mainCat==="Бутылки/Банки" ? " · "+esc(p.subCat) : ""} ·</span>
+          ${esc(p.name)}
+          <span class="priceTag">· ${money(p.price)}${suffix}</span>
+        </button>`;
+      }).join("");
+
+      el.suggest.style.display="block";
+    }
+
+    function updateActiveSuggest(){
+      const btns = [...el.suggest.querySelectorAll("button")];
+      btns.forEach((b,i)=>b.classList.toggle("active", i===activeSuggestIndex));
+      const a = btns[activeSuggestIndex];
+      if (a) a.scrollIntoView({block:"nearest"});
+    }
+
+    function hideSuggest(){
+      el.suggest.style.display="none";
+      el.suggest.innerHTML="";
+      suggestItems=[];
+      activeSuggestIndex=-1;
+    }
+
+    function suggest(query){
+      const q = normalize(query);
+      if (!q) return [];
+
+      const pool = catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
+
+      const scored = pool.map(p=>{
+        const n = normalize(p.name);
+        let s = 0;
+        if (n.startsWith(q)) s = 3;
+        else if (n.includes(q)) s = 2;
+
+        const num = q.match(/^\d+$/) ? q : null;
+        if (num && n.includes("кран "+num)) s = 4;
+
+        return {p,s};
+      }).filter(x=>x.s>0)
+        .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
+        .slice(0, 14)
+        .map(x=>x.p);
+
+      return scored;
+    }
+
+    /**********************
+     * Categories UI
+     **********************/
+    function availableFiltered(){
+      return catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
+    }
+
+    function stoppedFiltered(){
+      return catalog.filter(p=>stopSet.has(p.id)).filter(p=>passesFilter(p, stopCatFilter, stopBottleSub));
+    }
+
     function renderMenuCats(){
       el.catBar.innerHTML = MAIN_CATS.map(c =>
         `<button class="catBtn ${c===catFilter?"active":""}" data-cat="${esc(c)}" type="button">${esc(c)}</button>`
@@ -574,7 +734,7 @@
       if (stopCatFilter === "Бутылки/Банки"){
         el.stopSubBar.style.display = "flex";
         el.stopSubBar.innerHTML = BOTTLE_SUB.map(s =>
-          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>${""}`
+          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>`
         ).join("");
       } else {
         el.stopSubBar.style.display = "none";
@@ -582,25 +742,9 @@
       }
     }
 
-    /**********************
-     * Quick add buttons
-     **********************/
-    function availableFiltered(){
-      return catalog
-        .filter(isAvailable)
-        .filter(p => passesFilter(p, catFilter, bottleSub));
-    }
-
-    function stoppedFiltered(){
-      return catalog
-        .filter(p => stopSet.has(p.id))
-        .filter(p => passesFilter(p, stopCatFilter, stopBottleSub));
-    }
-
     function renderQuick(){
       let pool = availableFiltered().slice();
 
-      // sort: taps by number, others by name
       pool.sort((a,b)=>{
         if (a.mainCat==="Краны" && b.mainCat==="Краны"){
           return parseTapNumber(a.name) - parseTapNumber(b.name);
@@ -651,201 +795,85 @@
     }
 
     /**********************
-     * Search suggest
+     * Copy / clear
      **********************/
-    function showSuggest(items){
-      suggestItems = items;
-      activeSuggestIndex = items.length ? 0 : -1;
-      if (!items.length){
-        el.suggest.style.display="none";
-        el.suggest.innerHTML="";
+    async function copyReceipt(){
+      const lines = cart.map(it=>{
+        const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
+        const qtyTxt = (it.displayUnit==="г") ? `${it.displayQty} г` : `${it.displayQty} ${it.displayUnit}`;
+        const unit = unitPriceFor(it);
+        return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(lineSum(it))} GEL`;
+      });
+
+      const g = grossTotal();
+      const d = effectiveDiscountAmount();
+      const n = netTotal();
+
+      lines.push(`Скидка: ${money(d)} GEL`);
+      lines.push(`ИТОГО: ${money(n)} GEL`);
+
+      const text = lines.join("\n");
+      try{
+        await navigator.clipboard.writeText(text);
+        alert("Чек скопирован.");
+      }catch{
+        prompt("Скопируй вручную:", text);
+      }
+    }
+
+    /**********************
+     * Discount
+     **********************/
+    function setDiscountPrompt(){
+      const ans = prompt("Введите скидку суммой (GEL), которую нужно вычесть из итога:", String(discountAmount||0));
+      if (ans === null) return;
+      const v = parseNum(ans);
+      if (!Number.isFinite(v) || v < 0){
+        alert("Нужно число ≥ 0");
         return;
       }
-      el.suggest.innerHTML = items.map((p,i)=>{
-        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
-        return `<button type="button" data-idx="${i}" class="${i===activeSuggestIndex?"active":""}">
-          <span class="muted">${esc(p.mainCat)}${p.mainCat==="Бутылки/Банки" ? " · "+esc(p.subCat) : ""} ·</span>
-          ${esc(p.name)}
-          <span class="priceTag">· ${money(p.price)}${suffix}</span>
-        </button>`;
-      }).join("");
-      el.suggest.style.display="block";
+      discountAmount = Math.round(v*100)/100;
+      renderCart();
     }
-
-    function updateActiveSuggest(){
-      const btns = [...el.suggest.querySelectorAll("button")];
-      btns.forEach((b,i)=>b.classList.toggle("active", i===activeSuggestIndex));
-      const a = btns[activeSuggestIndex];
-      if (a) a.scrollIntoView({block:"nearest"});
-    }
-
-    function hideSuggest(){
-      el.suggest.style.display="none";
-      el.suggest.innerHTML="";
-      suggestItems=[];
-      activeSuggestIndex=-1;
-    }
-
-    function suggest(query){
-      const q = normalize(query);
-      if (!q) return [];
-
-      const pool = availableFiltered();
-      const scored = pool.map(p=>{
-        const n = normalize(p.name);
-        let s = 0;
-        if (n.startsWith(q)) s = 3;
-        else if (n.includes(q)) s = 2;
-
-        // tap number boost
-        const num = q.match(/^\d+$/) ? q : null;
-        if (num && n.includes("кран "+num)) s = 4;
-        return {p,s};
-      }).filter(x=>x.s>0)
-        .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
-        .slice(0, 14)
-        .map(x=>x.p);
-
-      return scored;
-    }
-
-    function findById(id){ return catalog.find(p=>p.id===id) || null; }
-
-    function findBestMatchByNameOrTapInput(text){
-      const t = normalize(text);
-      const pool = availableFiltered();
-
-      const exact = pool.find(p=>normalize(p.name)===t);
-      if (exact) return exact;
-
-      const m = t.match(/кран\s*(\d{1,2})/);
-      if (m){
-        const num = m[1];
-        const tap = pool.find(p=>normalize(p.name).includes("кран "+num+" "));
-        if (tap) return tap;
-      }
-      return suggestItems[0] || null;
+    function clearDiscount(){
+      discountAmount = 0;
+      corporateDiscountPercent = 0;
+      renderCart();
     }
 
     /**********************
-     * Cart logic
+     * Corporate flow
      **********************/
-    // Pricing quantity:
-    // - unit: pcs
-    // - per_liter: liters
-    // - per_kg: kilograms (from grams)
-    function lineSum(item){
-      const unit = unitPriceFor(item);
-      return Math.round(unit * item.qtyPricing * 100) / 100;
-    }
-
-    function cartTotal(){
-      return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
-    }
-
-    function interpretQtyForProduct(p, qtyValue){
-      // Determine input unit automatically:
-      // - per_kg: grams
-      // - per_liter & keg: liters
-      // - unit: pcs
-      if (p.type === "per_kg" || p.track === "grams"){
-        const grams = Math.max(1, Math.round(qtyValue));
-        return { displayQty: grams, displayUnit:"г", trackQty: grams, qtyPricing: grams/1000 };
+    async function corporatePayFlow(){
+      if (!cart.length){
+        alert("Чек пустой.");
+        return;
       }
-      if (p.type === "per_liter" || p.track === "liters" || p.track === "keg"){
-        const liters = Math.max(0.5, Math.round(qtyValue*10)/10);
-        return { displayQty: liters, displayUnit:"л", trackQty: liters, qtyPricing: liters };
+
+      // choose employee
+      const name = prompt(`Кто взял? Введите имя:\n${EMPLOYEES.join(", ")}`, corporateEmployee || EMPLOYEES[0]);
+      if (name === null) return;
+      const emp = String(name).trim();
+      if (!emp){
+        alert("Нужно имя сотрудника.");
+        return;
       }
-      // pcs
-      const pcs = Math.max(1, Math.round(qtyValue));
-      return { displayQty: pcs, displayUnit:"шт", trackQty: pcs, qtyPricing: pcs };
-    }
+      corporateEmployee = emp;
 
-    function addToCart(p, qtyValue){
-      const q = interpretQtyForProduct(p, qtyValue);
+      // percent discount (optional)
+      const pctAns = prompt("Скидка % для сотрудника? (пример: 30). Если нет — 0", String(corporateDiscountPercent||0));
+      if (pctAns === null) return;
+      let pct = parseNum(pctAns);
+      if (!Number.isFinite(pct) || pct < 0) pct = 0;
+      if (pct > 100) pct = 100;
+      corporateDiscountPercent = pct;
 
-      const existing = cart.find(x => x.productId===p.id && x.displayUnit===q.displayUnit);
-      if (existing){
-        existing.trackQty = Math.round((existing.trackQty + q.trackQty)*100)/100;
-        existing.qtyPricing = Math.round((existing.qtyPricing + q.qtyPricing)*100)/100;
-
-        // keep displayQty synced:
-        existing.displayQty = (existing.displayUnit==="г") ? Math.round(existing.trackQty) : existing.trackQty;
-      } else {
-        cart.push({
-          productId: p.id,
-          name: p.name,
-          mainCat: p.mainCat,
-          subCat: p.subCat,
-          type: p.type,
-          track: p.track,
-          price: p.price,
-          deliveryPrice: p.deliveryPrice,
-          trackQty: q.trackQty,     // for stock/keg deduction
-          qtyPricing: q.qtyPricing, // for money
-          displayQty: q.displayQty,
-          displayUnit: q.displayUnit
-        });
-      }
-      renderCart();
-    }
-
-    function renderCart(){
-      el.cartBody.innerHTML = cart.map((it, idx)=>{
-        const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
-        const sum = lineSum(it);
-        const showPrice = unitPriceFor(it);
-
-        const step = (it.displayUnit==="г") ? 50 : (it.displayUnit==="л" ? 0.5 : 1);
-        const min  = (it.displayUnit==="г") ? 1  : (it.displayUnit==="л" ? 0.5 : 1);
-
-        return `<tr>
-          <td>
-            <div style="font-weight:1000">${esc(it.name)}</div>
-            <div class="muted">${esc(it.mainCat)}${it.mainCat==="Бутылки/Банки" ? " · "+esc(it.subCat) : ""}</div>
-          </td>
-          <td class="right"><span class="priceTag">${money(showPrice)}${suffix}</span></td>
-          <td class="right">
-            <div class="qty">
-              <button type="button" data-act="dec" data-i="${idx}">−</button>
-              <input type="text" readonly inputmode="none" value="${esc(it.displayQty)}" data-i="${idx}" style="cursor:default" />
-              <button type="button" data-act="inc" data-i="${idx}">+</button>
-              <span class="muted unit">${esc(it.displayUnit)}</span>
-            </div>
-          </td>
-          <td class="right"><b>${money(sum)}</b></td>
-          <td class="right"><button class="danger" type="button" data-act="del" data-i="${idx}">×</button></td>
-        </tr>`;
-      }).join("");
-
-      el.itemsCount.textContent = String(cart.length);
-      el.grandTotal.textContent = money(cartTotal());
-    }
-
-    function adjustItem(idx, dir){
-      const it = cart[idx]; if (!it) return;
-
-      if (it.displayUnit === "г"){
-        const newG = Math.max(1, Math.round(Number(it.displayQty) + dir*50));
-        it.displayQty = newG;
-        it.trackQty = newG;
-        it.qtyPricing = (it.type==="per_kg") ? newG/1000 : newG;
-      } else if (it.displayUnit === "л"){
-        const newL = Math.max(0.5, Math.round((Number(it.displayQty) + dir*0.5)*10)/10);
-        it.displayQty = newL;
-        it.trackQty = newL;
-        it.qtyPricing = newL;
-      } else {
-        const newPcs = Math.max(1, Math.round(Number(it.displayQty) + dir));
-        it.displayQty = newPcs;
-        it.trackQty = newPcs;
-        it.qtyPricing = newPcs;
-      }
-      renderCart();
+      setPayment("corporate");
+      await pay(); // uses corporate settings
     }
 
     /**********************
-     * Pay logic (with kegSwitch prompt + low stock warn)
+     * Pay
      **********************/
     async function pay(){
       try{
@@ -854,12 +882,8 @@
           return;
         }
 
-        // Build items for API
-        const receiptId = uuid();
-        const total = cartTotal();
-
-        // Keg switch prompts
-        const kegSwitches = {}; // productId -> liters from NEW keg
+        // For keg switch prompts:
+        const kegSwitches = {};
 
         for (const it of cart){
           const p = findById(it.productId);
@@ -871,16 +895,14 @@
           const remaining = Number(k.remainingL || 0);
           const qty = Number(it.trackQty || 0);
 
-          // If this sale spills into new keg (qty > remaining) and there are spares
           if (qty > remaining && Number(k.spares || 0) > 0){
             const overflow = +(qty - remaining).toFixed(2);
             const ans = prompt(`${p.name} — кега обновлена.\nСколько литров налито из новой кеги?`, String(overflow));
             if (ans === null) throw new Error("Отмена пробития");
 
-            let newUsed = Number(String(ans).replace(",", "."));
+            let newUsed = parseNum(ans);
             if (!Number.isFinite(newUsed) || newUsed < 0) newUsed = overflow;
 
-            // Safety: from old keg can't exceed remaining
             const maxOld = remaining;
             const minNew = Math.max(0, qty - maxOld);
             if (newUsed < minNew) newUsed = minNew;
@@ -894,16 +916,33 @@
           productId: it.productId,
           qtyBase: it.trackQty,
           displayUnit: it.displayUnit,
-          unitPriceUsed: unitPriceFor(it) // informational only
+          unitPriceUsed: unitPriceFor(it)
         }));
 
-        el.syncStatus.textContent = "…";
-        const res = await apiPost({ path:"sale", receiptId, total, paymentMethod, items, kegSwitches });
+        const receiptId = uuid();
+        const gross = grossTotal();
+        const disc = effectiveDiscountAmount();
+        const net = netTotal();
 
-        // Update UI state
+        // For corporate: client pays 0, but we still record net cost on employee
+        const payload = {
+          path:"sale",
+          receiptId,
+          paymentMethod,
+          employee: (paymentMethod==="corporate") ? corporateEmployee : "",
+          grossTotal: gross,
+          discountAmount: disc,
+          netTotal: net,
+          items,
+          kegSwitches
+        };
+
+        el.syncStatus.textContent = "…";
+        const res = await apiPost(payload);
+
         applyStateToUI(res.state);
 
-        // Low stock warnings (<=5 for count/liters) for available items
+        // Low stock warning for count/liters (<=5)
         const warnings = [];
         for (const p of catalog){
           if (stopSet.has(p.id)) continue;
@@ -915,36 +954,23 @@
             warnings.push(`${p.name} осталось ${q} ${unit}. Отключите этот товар в доставке`);
           }
         }
-        if (warnings.length) alert(warnings.join("\n\n"));
 
-        // Clear cart
+        // clear cart after success
+        const msg =
+          (paymentMethod==="corporate")
+            ? `Корпоративный — ${corporateEmployee}: ${money(net)} GEL`
+            : `Пробито ✅ Сумма: ${money(net)} GEL`;
+
         cart = [];
+        discountAmount = 0; // reset per receipt
+        corporateDiscountPercent = 0; // reset per receipt
         renderCart();
-        alert("Пробито ✅ Остатки обновлены.");
+
+        alert(msg + (warnings.length ? ("\n\n" + warnings.join("\n\n")) : ""));
 
       }catch(err){
         el.syncStatus.textContent = "ERR";
         alert("Ошибка при пробитии: " + err);
-      }
-    }
-
-    /**********************
-     * Copy / clear
-     **********************/
-    async function copyReceipt(){
-      const lines = cart.map(it=>{
-        const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
-        const qtyTxt = (it.displayUnit==="г") ? `${it.displayQty} г` : `${it.displayQty} ${it.displayUnit}`;
-        const unit = unitPriceFor(it);
-        return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(lineSum(it))} GEL`;
-      });
-      lines.push(`ИТОГО: ${money(cartTotal())} GEL`);
-      const text = lines.join("\n");
-      try{
-        await navigator.clipboard.writeText(text);
-        alert("Чек скопирован.");
-      }catch{
-        prompt("Скопируй вручную:", text);
       }
     }
 
@@ -954,13 +980,23 @@
     async function closeShift(){
       try{
         const data = await apiGet("shiftSummary");
+        let corpBreak = "";
+        if (data.corporateByEmployee){
+          const keys = Object.keys(data.corporateByEmployee);
+          if (keys.length){
+            corpBreak = "\n\nКорпоративный по сотрудникам:\n" + keys.map(k=>`- ${k}: ${money(data.corporateByEmployee[k])} GEL`).join("\n");
+          }
+        }
+
         alert(
           `Смена за ${data.dayKey}\n\n` +
           `Наличные: ${money(data.cash)} GEL\n` +
           `Карта: ${money(data.card)} GEL\n` +
-          `Доставка: ${money(data.delivery)} GEL\n\n` +
+          `Доставка: ${money(data.delivery)} GEL\n` +
+          `Корпоративный: ${money(data.corporate)} GEL\n\n` +
           `ИТОГО: ${money(data.total)} GEL\n` +
-          `Чеков: ${data.count}`
+          `Чеков: ${data.count}` +
+          corpBreak
         );
       }catch(err){
         alert("Ошибка закрытия смены: " + err);
@@ -971,123 +1007,19 @@
      * Tabs
      **********************/
     function setTab(t){
-      document.querySelectorAll(".tab").forEach(b=>{
-        b.classList.toggle("active", b.dataset.tab===t);
-      });
+      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t));
       el.menuTab.style.display = (t==="menu") ? "" : "none";
       el.stopTab.style.display = (t==="stop") ? "" : "none";
       if (t==="stop") renderStopList();
     }
 
     /**********************
-     * Product add/delete (optional)
-     **********************/
-    function renderNewProductCats(){
-      el.newMainCat.innerHTML = MAIN_CATS
-        .filter(c=>c!=="Все")
-        .map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
-
-      el.newBottleSub.innerHTML = BOTTLE_SUB.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
-    }
-
-    function sheetCatForNewProduct(mainCat){
-      // map UI mainCat back to original sheet categories where possible
-      // - Kegs: "Краны" tracked as keg; cat can be "Краны"
-      // - Bottles/Cans: use "Пиво в бутылках" except sub "Безалкогольные" -> "Безалкогольные"
-      // - Others: "Тара", "Рыба (за кг)", "Закуски"
-      if (mainCat === "Тара") return "Тара";
-      if (mainCat === "Рыба") return "Рыба (за кг)";
-      if (mainCat === "Краны") return "Краны";
-      if (mainCat === "Бутылки/Банки") return "Пиво в бутылках";
-      return "Закуски";
-    }
-
-    async function addProduct(){
-      try{
-        const name = String(el.newName.value||"").trim();
-        const price = Number(el.newPrice.value);
-        const deliveryPrice = (el.newDeliveryPrice.value==="" ? "" : Number(el.newDeliveryPrice.value));
-        const mainCat = el.newMainCat.value;
-        const sub = el.newBottleSub.value;
-        const type = el.newType.value;
-        const track = el.newTrack.value;
-        const kegSizeL = Number(el.newKegSize.value||0);
-        const kegsSpare = Number(el.newKegSpares.value||0);
-
-        if (!name || !Number.isFinite(price)){
-          alert("Заполни название и цену.");
-          return;
-        }
-
-        // Choose sheet cat:
-        let sheetCat = sheetCatForNewProduct(mainCat);
-        if (mainCat === "Бутылки/Банки" && sub === "Безалкогольные") sheetCat = "Безалкогольные";
-
-        const payload = {
-          path:"productUpsert",
-          product:{
-            name,
-            cat: sheetCat,
-            type,
-            price,
-            deliveryPrice: (deliveryPrice==="" || !Number.isFinite(deliveryPrice)) ? "" : deliveryPrice,
-            track,
-            stopWhenZero: "TRUE",
-            kegSizeL: track==="keg" ? (kegSizeL||30) : "",
-            kegsSpare: track==="keg" ? (kegsSpare||2) : ""
-          }
-        };
-
-        el.syncStatus.textContent = "…";
-        const res = await apiPost(payload);
-        applyStateToUI(res.state);
-
-        el.newName.value=""; el.newPrice.value=""; el.newDeliveryPrice.value="";
-        el.newKegSize.value=""; el.newKegSpares.value="";
-        alert("Товар добавлен.");
-      }catch(err){
-        alert("Ошибка добавления: " + err);
-      }
-    }
-
-    function renderDeleteSelect(){
-      const sorted = catalog.slice().sort((a,b)=>{
-        if (a.mainCat==="Краны" && b.mainCat==="Краны") return parseTapNumber(a.name)-parseTapNumber(b.name);
-        return a.name.localeCompare(b.name,"ru");
-      });
-
-      el.deleteSelect.innerHTML = sorted.map(p=>{
-        const suffix = p.type==="per_liter" ? " /л" : (p.type==="per_kg" ? " /кг" : "");
-        const stopTag = stopSet.has(p.id) ? " [STOP]" : "";
-        return `<option value="${p.id}">${p.mainCat}${p.mainCat==="Бутылки/Банки" ? " · "+p.subCat : ""} · ${p.name}${stopTag} — ${money(p.price)}${suffix}</option>`;
-      }).join("");
-    }
-
-    async function deleteProduct(){
-      try{
-        const id = el.deleteSelect.value;
-        if (!id) return;
-        if (!confirm("Удалить выбранный товар из таблицы?")) return;
-
-        el.syncStatus.textContent = "…";
-        const res = await apiPost({ path:"productDelete", productId:id });
-        applyStateToUI(res.state);
-
-        alert("Удалено.");
-      }catch(err){
-        alert("Ошибка удаления: " + err);
-      }
-    }
-
-    /**********************
      * Events
      **********************/
-    // Search
+    // Search suggest
     el.search.addEventListener("input", ()=>{
       const items = suggest(el.search.value);
       showSuggest(items);
-      // qty step depends on current best match
-      // (no autofocus)
     });
 
     el.search.addEventListener("keydown", (e)=>{
@@ -1104,9 +1036,9 @@
         updateActiveSuggest();
       } else if (e.key==="Enter"){
         e.preventDefault();
-        const p = suggestItems[activeSuggestIndex] || findBestMatchByNameOrTapInput(el.search.value);
+        const p = suggestItems[activeSuggestIndex] || bestMatchFromInput();
         if (!p) return;
-        addToCart(p, qtyAddValue);
+        addToCart(p, getQtyAdd());
         hideSuggest();
       }
     });
@@ -1117,31 +1049,29 @@
       const idx = Number(btn.dataset.idx);
       const p = suggestItems[idx];
       if (!p) return;
-      el.search.value = p.name; // but do not auto-focus elsewhere
+      el.search.value = p.name;
       hideSuggest();
-      addToCart(p, qtyAddValue);
+      addToCart(p, getQtyAdd());
     });
 
     document.addEventListener("click", (e)=>{
       if (!e.target.closest(".searchBox")) hideSuggest();
     });
 
-    // QtyAdd (no keyboard)
     el.qtyMinus.addEventListener("click", ()=>adjustQtyAdd(-1));
     el.qtyPlus.addEventListener("click", ()=>adjustQtyAdd(+1));
 
-    // Add button
     el.addBtn.addEventListener("click", ()=>{
-      const p = findBestMatchByNameOrTapInput(el.search.value);
+      const p = bestMatchFromInput();
       if (!p){
         alert("Не нашла товар (или он на стопе).");
         return;
       }
-      addToCart(p, qtyAddValue);
+      addToCart(p, getQtyAdd());
       hideSuggest();
     });
 
-    // Cart +/-/delete
+    // cart controls
     el.cartBody.addEventListener("click", (e)=>{
       const btn = e.target.closest("button");
       if (!btn) return;
@@ -1158,30 +1088,44 @@
       }
     });
 
-    // Payment buttons: set method and pay
+    // cart qty input change
+    el.cartBody.addEventListener("change", (e)=>{
+      const inp = e.target.closest('input[data-act="qty"]');
+      if (!inp) return;
+      const idx = Number(inp.dataset.i);
+      setItemQtyFromInput(idx, inp.value);
+    });
+
+    // discount
+    el.discountBtn.addEventListener("click", setDiscountPrompt);
+    el.discountClearBtn.addEventListener("click", clearDiscount);
+
+    // payment buttons
     el.cashBtn.addEventListener("click", ()=>{ setPayment("cash"); pay(); });
     el.cardBtn.addEventListener("click", ()=>{ setPayment("card"); pay(); });
     el.deliveryBtn.addEventListener("click", ()=>{ setPayment("delivery"); pay(); });
+    el.corpBtn.addEventListener("click", corporatePayFlow);
 
-    // Copy / clear / close shift
     el.copyBtn.addEventListener("click", copyReceipt);
     el.clearBtn.addEventListener("click", ()=>{
       if (!cart.length) return;
       if (!confirm("Очистить чек?")) return;
       cart = [];
+      discountAmount = 0;
+      corporateDiscountPercent = 0;
       renderCart();
     });
+
     el.closeShiftBtn.addEventListener("click", closeShift);
 
-    // Refresh
     el.refreshBtn.addEventListener("click", ()=>refreshState().catch(err=>alert("Ошибка: "+err)));
 
-    // Tabs
+    // tabs
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click", ()=>setTab(b.dataset.tab));
     });
 
-    // Menu category bar clicks
+    // categories
     el.catBar.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-cat]");
       if (!btn) return;
@@ -1189,7 +1133,6 @@
       renderMenuCats();
       renderQuick();
     });
-
     el.subBar.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-sub]");
       if (!btn) return;
@@ -1198,7 +1141,6 @@
       renderQuick();
     });
 
-    // Stop category bar clicks
     el.stopCatBar.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-stopcat]");
       if (!btn) return;
@@ -1206,7 +1148,6 @@
       renderStopCats();
       renderStopList();
     });
-
     el.stopSubBar.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-stopsub]");
       if (!btn) return;
@@ -1215,19 +1156,34 @@
       renderStopList();
     });
 
-    // Quick add button clicks
+    // quick add
     el.quickGrid.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-qid]");
       if (!btn) return;
       const id = btn.dataset.qid;
       const p = findById(id);
       if (!p || !isAvailable(p)) return;
-      addToCart(p, qtyAddValue);
+      addToCart(p, getQtyAdd());
     });
 
-    // Product add/delete
-    el.addProductBtn.addEventListener("click", addProduct);
-    el.deleteBtn.addEventListener("click", deleteProduct);
+    /**********************
+     * Stop tabs renderers (reuse)
+     **********************/
+    function renderStopCats(){
+      el.stopCatBar.innerHTML = MAIN_CATS.map(c =>
+        `<button class="catBtn ${c===stopCatFilter?"active":""}" data-stopcat="${esc(c)}" type="button">${esc(c)}</button>`
+      ).join("");
+
+      if (stopCatFilter === "Бутылки/Банки"){
+        el.stopSubBar.style.display = "flex";
+        el.stopSubBar.innerHTML = BOTTLE_SUB.map(s =>
+          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>`
+        ).join("");
+      } else {
+        el.stopSubBar.style.display = "none";
+        el.stopSubBar.innerHTML = "";
+      }
+    }
 
     /**********************
      * Init
@@ -1235,11 +1191,9 @@
     (async ()=>{
       try{
         setPayment("cash");
-        setQtyAdd(1);
         setTab("menu");
         renderMenuCats();
         renderStopCats();
-        renderNewProductCats();
         await refreshState();
       }catch(err){
         el.syncStatus.textContent = "ERR";
