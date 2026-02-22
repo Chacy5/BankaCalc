@@ -1,4 +1,4 @@
-<!doctype html>
+    <!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
@@ -105,7 +105,6 @@
 
         <div class="row" style="gap:8px">
           <button id="qtyMinus" class="ghost" type="button">−</button>
-          <!-- ВАЖНО: теперь редактируемое поле, клавиатура появляется при тапе -->
           <input id="qtyAdd" type="number" step="1" min="0" value="1" style="width:90px;text-align:right" inputmode="decimal" />
           <button id="qtyPlus" class="ghost" type="button">+</button>
         </div>
@@ -134,13 +133,6 @@
 
       <div class="footerTotal">
         <div class="muted">Позиций: <span id="itemsCount" class="badge">0</span></div>
-
-        <div class="muted">
-          Скидка: <span id="discountLabel" class="badge">0</span> GEL
-          <button id="discountBtn" class="ghost" type="button" style="margin-left:8px">Скидка</button>
-          <button id="discountClearBtn" class="ghost" type="button">Сброс</button>
-        </div>
-
         <div class="total">Итого: <span id="grandTotal">0</span> GEL</div>
       </div>
 
@@ -148,19 +140,12 @@
         <button id="cashBtn" class="primary" type="button">Наличные</button>
         <button id="cardBtn" class="ghost" type="button">Карта</button>
         <button id="deliveryBtn" class="ghost" type="button">Доставка</button>
-        <button id="corpBtn" class="ghost" type="button">Корпоративный</button>
-
         <button id="copyBtn" class="ghost" type="button">Копировать чек</button>
         <button id="clearBtn" class="danger" type="button">Очистить</button>
       </div>
 
       <div class="gridBtns" style="margin-top:10px">
         <button id="closeShiftBtn" class="warn" type="button">Закрыть смену</button>
-      </div>
-
-      <div class="muted" style="margin-top:10px">
-        * “Доставка” считает по <b>deliveryPrice</b> (если есть), иначе по обычной цене.<br/>
-        * “Корпоративный” записывает сумму на сотрудника. Оплата = 0 для клиента.
       </div>
     </div>
 
@@ -193,7 +178,7 @@
       </div>
 
       <div class="hr"></div>
-      <div class="muted">Редактируй каталог в Google Sheets (выпадашки). Тут — только касса.</div>
+      <div class="muted">Категории берутся строго из столбца <b>cat</b> в Google Sheets.</div>
     </div>
   </div>
 
@@ -205,13 +190,12 @@
     const API_TOKEN = "BankaBatumi2026Batumi390";
 
     /**********************
-     * Categories
+     * Categories (ручные из таблицы)
      **********************/
     const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
     const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose"];
 
-    // Corporate employees
-    const EMPLOYEES = ["Ви","Виталий","Зура","Джули"];
+    const SUB_SET = new Set(BOTTLE_SUB.map(x=>x.toLowerCase()));
 
     /**********************
      * Helpers
@@ -228,12 +212,6 @@
     function uuid(){
       return (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+"-"+Math.random().toString(16).slice(2));
     }
-    function parseNum(x){
-      if (x===null || x===undefined) return NaN;
-      return Number(String(x).replace(",", ".").trim());
-    }
-
-    // POST without CORS preflight
     async function apiPost(body){
       const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
         method:"POST",
@@ -251,6 +229,10 @@
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }
+    function parseNum(x){
+      if (x===null || x===undefined) return NaN;
+      return Number(String(x).replace(",", ".").trim());
+    }
 
     /**********************
      * DOM
@@ -262,20 +244,16 @@
       qtyMinus: document.getElementById("qtyMinus"),
       qtyPlus: document.getElementById("qtyPlus"),
       addBtn: document.getElementById("addBtn"),
+
       cartBody: document.getElementById("cartBody"),
       itemsCount: document.getElementById("itemsCount"),
       grandTotal: document.getElementById("grandTotal"),
       syncStatus: document.getElementById("syncStatus"),
       payModeLabel: document.getElementById("payModeLabel"),
 
-      discountLabel: document.getElementById("discountLabel"),
-      discountBtn: document.getElementById("discountBtn"),
-      discountClearBtn: document.getElementById("discountClearBtn"),
-
       cashBtn: document.getElementById("cashBtn"),
       cardBtn: document.getElementById("cardBtn"),
       deliveryBtn: document.getElementById("deliveryBtn"),
-      corpBtn: document.getElementById("corpBtn"),
       copyBtn: document.getElementById("copyBtn"),
       clearBtn: document.getElementById("clearBtn"),
       closeShiftBtn: document.getElementById("closeShiftBtn"),
@@ -299,66 +277,50 @@
     let catalog = [];
     let stopSet = new Set();
 
-    // payment: cash | card | delivery | corporate
     let paymentMethod = "cash";
-    let corporateEmployee = "";        // chosen employee
-    let corporateDiscountPercent = 0;  // percent discount for corporate
-
-    // discount for any receipt (amount in GEL)
-    let discountAmount = 0;
-
-    // cart
     let cart = [];
 
-    // Suggest state
     let suggestItems = [];
     let activeSuggestIndex = -1;
 
-    // category filters
     let catFilter = "Все";
     let bottleSub = "IPA/APA";
     let stopCatFilter = "Все";
     let stopBottleSub = "IPA/APA";
 
     /**********************
-     * Category mapping (same logic as before)
+     * КЛЮЧЕВОЕ ИЗМЕНЕНИЕ:
+     * Категория берётся из p.cat (таблица),
+     * НИКАКИХ угадываний по названию.
      **********************/
-    function parseTapNumber(name){
-      const m = String(name||"").match(/кран\s*(\d+)/i);
-      return m ? Number(m[1]) : 9999;
-    }
+    function mapCategoryFromSheet(p){
+      const raw = String(p.cat || "").trim();
+      const lower = raw.toLowerCase();
 
-    function mapCategory(p){
-      const name = String(p.name||"");
-      const n = normalize(name);
-      const rawCat = String(p.cat||"");
-
-      if (p.track === "keg") return { main:"Краны" };
-      if (rawCat === "Тара") return { main:"Тара" };
-      if (rawCat.includes("Рыба")) return { main:"Рыба" };
-
-      if (rawCat === "Пиво в бутылках" || rawCat === "Безалкогольные"){
-        if (n.includes("медов") || n.includes("mead")) return { main:"Бутылки/Банки", sub:"Медовухи" };
-        if (rawCat === "Безалкогольные" || n.includes("0%") || n.includes("безалког")) return { main:"Бутылки/Банки", sub:"Безалкогольные" };
-        if (n.includes("ipa") || n.includes("apa") || n.includes("neipa") || n.includes("dipa") || n.includes("cold ipa")) return { main:"Бутылки/Банки", sub:"IPA/APA" };
-        if (n.includes("stout") || n.includes("dark") || n.includes("темн") || n.includes("shavi")) return { main:"Бутылки/Банки", sub:"Темное" };
-        if (n.includes("weiss") || n.includes("пшен")) return { main:"Бутылки/Банки", sub:"Пшеничка" };
-        if (n.includes("sour") || n.includes("gose") || n.includes("тома")) return { main:"Бутылки/Банки", sub:"Sour/Gose" };
-        return { main:"Бутылки/Банки", sub:"Классика" };
+      // 1) Если cat = одна из основных категорий
+      if (MAIN_CATS.includes(raw) && raw !== "Все") {
+        if (raw === "Бутылки/Банки") return { main: "Бутылки/Банки", sub: "Классика" };
+        return { main: raw, sub: "" };
       }
 
-      if (n.includes("chips") || n.includes("чипс") || n.includes("bulba chips") || n.includes("mega chips")){
-        return { main:"Чипсы" };
+      // 2) Если cat = подкатегория бутылок/банок
+      if (SUB_SET.has(lower)) {
+        // нормализуем к правильному регистру из списка
+        const real = BOTTLE_SUB.find(x => x.toLowerCase() === lower) || raw;
+        return { main: "Бутылки/Банки", sub: real };
       }
-      if (n.includes("джерки") || n.includes("колбас") || n.includes("кабанос")){
-        return { main:"Мясо" };
-      }
-      if (rawCat === "Закуски") return { main:"Снеки" };
-      return { main:"Снеки" };
+
+      // 3) Если в таблице написали "Классика" и т.п. без "Бутылки/Банки" — тоже считаем подкатегорией
+      // (на случай если выпадалка/валидация расширена)
+      if (BOTTLE_SUB.includes(raw)) return { main:"Бутылки/Банки", sub: raw };
+
+      // 4) Фолбэк — чтобы не ломалось, если кто-то ввёл кастом
+      // Лучше будет сразу видно, что товар "не там"
+      return { main: "Снеки", sub: "" };
     }
 
     function withMapped(p){
-      const m = mapCategory(p);
+      const m = mapCategoryFromSheet(p);
       return { ...p, mainCat: m.main, subCat: m.sub || "" };
     }
 
@@ -380,7 +342,7 @@
       catalog = (state.products || []).map(p => withMapped({
         id: String(p.id),
         name: p.name,
-        cat: p.cat,
+        cat: p.cat, // <- важно
         type: p.type || "unit",
         price: Number(p.price||0),
         deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
@@ -418,21 +380,16 @@
       el.deliveryBtn.classList.toggle("primary", method==="delivery");
       el.deliveryBtn.classList.toggle("ghost", method!=="delivery");
 
-      el.corpBtn.classList.toggle("primary", method==="corporate");
-      el.corpBtn.classList.toggle("ghost", method!=="corporate");
-
       const label =
         method==="cash" ? "Наличные" :
         method==="card" ? "Карта" :
-        method==="delivery" ? "Доставка" :
-        "Корпоративный";
+        "Доставка";
       el.payModeLabel.textContent = label;
 
       renderCart();
     }
 
     function unitPriceFor(item){
-      // corporate: считаем “стоимость” как обычно, просто клиент платит 0 (на экране можно показать net отдельно)
       if (paymentMethod === "delivery"){
         const dp = item.deliveryPrice;
         if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0) return Number(dp);
@@ -444,39 +401,8 @@
       return Math.round(unitPriceFor(item) * item.qtyPricing * 100) / 100;
     }
 
-    function grossTotal(){
+    function total(){
       return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
-    }
-
-    function effectiveDiscountAmount(){
-      let d = Number(discountAmount||0);
-      if (!Number.isFinite(d) || d < 0) d = 0;
-
-      // corporate percent discount (additional)
-      if (paymentMethod === "corporate" && corporateDiscountPercent > 0){
-        const pct = Math.max(0, Math.min(100, Number(corporateDiscountPercent)));
-        const extra = grossTotal() * (pct/100);
-        d = d + extra;
-      }
-
-      // cap by gross
-      const g = grossTotal();
-      if (d > g) d = g;
-      return Math.round(d*100)/100;
-    }
-
-    function netTotal(){
-      const g = grossTotal();
-      const d = effectiveDiscountAmount();
-      return Math.round((g - d)*100)/100;
-    }
-
-    function displayedTotal(){
-      // cash/card/delivery show net
-      if (paymentMethod !== "corporate") return netTotal();
-
-      // corporate: клиент платит 0
-      return 0;
     }
 
     /**********************
@@ -493,17 +419,8 @@
       if (!t) return null;
 
       const pool = catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
-
       const exact = pool.find(p=>normalize(p.name)===t);
       if (exact) return exact;
-
-      const m = t.match(/кран\s*(\d{1,2})/);
-      if (m){
-        const num = m[1];
-        const tap = pool.find(p=>normalize(p.name).includes("кран "+num));
-        if (tap) return tap;
-      }
-
       return suggestItems[0] || null;
     }
 
@@ -632,8 +549,7 @@
       }).join("");
 
       el.itemsCount.textContent = String(cart.length);
-      el.discountLabel.textContent = money(effectiveDiscountAmount());
-      el.grandTotal.textContent = money(displayedTotal());
+      el.grandTotal.textContent = money(total());
     }
 
     /**********************
@@ -679,17 +595,15 @@
       const q = normalize(query);
       if (!q) return [];
 
-      const pool = catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
+      const pool = catalog
+        .filter(isAvailable)
+        .filter(p=>passesFilter(p, catFilter, bottleSub));
 
       const scored = pool.map(p=>{
         const n = normalize(p.name);
         let s = 0;
         if (n.startsWith(q)) s = 3;
         else if (n.includes(q)) s = 2;
-
-        const num = q.match(/^\d+$/) ? q : null;
-        if (num && n.includes("кран "+num)) s = 4;
-
         return {p,s};
       }).filter(x=>x.s>0)
         .sort((a,b)=>b.s-a.s || a.p.name.localeCompare(b.p.name,"ru"))
@@ -744,14 +658,7 @@
 
     function renderQuick(){
       let pool = availableFiltered().slice();
-
-      pool.sort((a,b)=>{
-        if (a.mainCat==="Краны" && b.mainCat==="Краны"){
-          return parseTapNumber(a.name) - parseTapNumber(b.name);
-        }
-        return a.name.localeCompare(b.name, "ru");
-      });
-
+      pool.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
       pool = pool.slice(0, 24);
 
       el.quickGrid.innerHTML = pool.map(p=>{
@@ -765,13 +672,7 @@
 
     function renderStopList(){
       const list = stoppedFiltered().slice();
-
-      list.sort((a,b)=>{
-        if (a.mainCat==="Краны" && b.mainCat==="Краны"){
-          return parseTapNumber(a.name) - parseTapNumber(b.name);
-        }
-        return (a.mainCat.localeCompare(b.mainCat,"ru") || a.name.localeCompare(b.name,"ru"));
-      });
+      list.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
 
       if (!list.length){
         el.stopList.innerHTML = `<div class="muted">Сейчас ничего не на стопе 🎉</div>`;
@@ -804,13 +705,7 @@
         const unit = unitPriceFor(it);
         return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(lineSum(it))} GEL`;
       });
-
-      const g = grossTotal();
-      const d = effectiveDiscountAmount();
-      const n = netTotal();
-
-      lines.push(`Скидка: ${money(d)} GEL`);
-      lines.push(`ИТОГО: ${money(n)} GEL`);
+      lines.push(`ИТОГО: ${money(total())} GEL`);
 
       const text = lines.join("\n");
       try{
@@ -822,94 +717,13 @@
     }
 
     /**********************
-     * Discount
-     **********************/
-    function setDiscountPrompt(){
-      const ans = prompt("Введите скидку суммой (GEL), которую нужно вычесть из итога:", String(discountAmount||0));
-      if (ans === null) return;
-      const v = parseNum(ans);
-      if (!Number.isFinite(v) || v < 0){
-        alert("Нужно число ≥ 0");
-        return;
-      }
-      discountAmount = Math.round(v*100)/100;
-      renderCart();
-    }
-    function clearDiscount(){
-      discountAmount = 0;
-      corporateDiscountPercent = 0;
-      renderCart();
-    }
-
-    /**********************
-     * Corporate flow
-     **********************/
-    async function corporatePayFlow(){
-      if (!cart.length){
-        alert("Чек пустой.");
-        return;
-      }
-
-      // choose employee
-      const name = prompt(`Кто взял? Введите имя:\n${EMPLOYEES.join(", ")}`, corporateEmployee || EMPLOYEES[0]);
-      if (name === null) return;
-      const emp = String(name).trim();
-      if (!emp){
-        alert("Нужно имя сотрудника.");
-        return;
-      }
-      corporateEmployee = emp;
-
-      // percent discount (optional)
-      const pctAns = prompt("Скидка % для сотрудника? (пример: 30). Если нет — 0", String(corporateDiscountPercent||0));
-      if (pctAns === null) return;
-      let pct = parseNum(pctAns);
-      if (!Number.isFinite(pct) || pct < 0) pct = 0;
-      if (pct > 100) pct = 100;
-      corporateDiscountPercent = pct;
-
-      setPayment("corporate");
-      await pay(); // uses corporate settings
-    }
-
-    /**********************
-     * Pay
+     * Pay (минимально: cash/card/delivery)
      **********************/
     async function pay(){
       try{
         if (!cart.length){
           alert("Чек пустой.");
           return;
-        }
-
-        // For keg switch prompts:
-        const kegSwitches = {};
-
-        for (const it of cart){
-          const p = findById(it.productId);
-          if (!p || p.track !== "keg") continue;
-
-          const k = state && state.kegs && state.kegs[p.id];
-          if (!k) continue;
-
-          const remaining = Number(k.remainingL || 0);
-          const qty = Number(it.trackQty || 0);
-
-          if (qty > remaining && Number(k.spares || 0) > 0){
-            const overflow = +(qty - remaining).toFixed(2);
-            const ans = prompt(`${p.name} — кега обновлена.\nСколько литров налито из новой кеги?`, String(overflow));
-            if (ans === null) throw new Error("Отмена пробития");
-
-            let newUsed = parseNum(ans);
-            if (!Number.isFinite(newUsed) || newUsed < 0) newUsed = overflow;
-
-            const maxOld = remaining;
-            const minNew = Math.max(0, qty - maxOld);
-            if (newUsed < minNew) newUsed = minNew;
-            if (newUsed > qty) newUsed = qty;
-
-            kegSwitches[p.id] = +newUsed.toFixed(2);
-          }
         }
 
         const items = cart.map(it => ({
@@ -920,83 +734,44 @@
         }));
 
         const receiptId = uuid();
-        const gross = grossTotal();
-        const disc = effectiveDiscountAmount();
-        const net = netTotal();
+        const net = total();
 
-        // For corporate: client pays 0, but we still record net cost on employee
         const payload = {
           path:"sale",
           receiptId,
           paymentMethod,
-          employee: (paymentMethod==="corporate") ? corporateEmployee : "",
-          grossTotal: gross,
-          discountAmount: disc,
+          employee: "",
+          grossTotal: net,
+          discountAmount: 0,
           netTotal: net,
           items,
-          kegSwitches
+          kegSwitches: {}
         };
 
         el.syncStatus.textContent = "…";
         const res = await apiPost(payload);
-
         applyStateToUI(res.state);
 
-        // Low stock warning for count/liters (<=5)
-        const warnings = [];
-        for (const p of catalog){
-          if (stopSet.has(p.id)) continue;
-          if (p.track !== "count" && p.track !== "liters") continue;
-
-          const q = (res.state.stock && (p.id in res.state.stock)) ? Number(res.state.stock[p.id]) : null;
-          if (q !== null && q > 0 && q <= 5){
-            const unit = (p.track === "count") ? "штук" : "литров";
-            warnings.push(`${p.name} осталось ${q} ${unit}. Отключите этот товар в доставке`);
-          }
-        }
-
-        // clear cart after success
-        const msg =
-          (paymentMethod==="corporate")
-            ? `Корпоративный — ${corporateEmployee}: ${money(net)} GEL`
-            : `Пробито ✅ Сумма: ${money(net)} GEL`;
-
         cart = [];
-        discountAmount = 0; // reset per receipt
-        corporateDiscountPercent = 0; // reset per receipt
         renderCart();
 
-        alert(msg + (warnings.length ? ("\n\n" + warnings.join("\n\n")) : ""));
-
+        alert(`Пробито ✅ Сумма: ${money(net)} GEL`);
       }catch(err){
         el.syncStatus.textContent = "ERR";
         alert("Ошибка при пробитии: " + err);
       }
     }
 
-    /**********************
-     * Close shift
-     **********************/
     async function closeShift(){
       try{
         const data = await apiGet("shiftSummary");
-        let corpBreak = "";
-        if (data.corporateByEmployee){
-          const keys = Object.keys(data.corporateByEmployee);
-          if (keys.length){
-            corpBreak = "\n\nКорпоративный по сотрудникам:\n" + keys.map(k=>`- ${k}: ${money(data.corporateByEmployee[k])} GEL`).join("\n");
-          }
-        }
-
         alert(
           `Смена за ${data.dayKey}\n\n` +
           `Наличные: ${money(data.cash)} GEL\n` +
           `Карта: ${money(data.card)} GEL\n` +
-          `Доставка: ${money(data.delivery)} GEL\n` +
-          `Корпоративный: ${money(data.corporate)} GEL\n\n` +
+          `Доставка: ${money(data.delivery)} GEL\n\n` +
           `ИТОГО: ${money(data.total)} GEL\n` +
-          `Чеков: ${data.count}` +
-          corpBreak
+          `Чеков: ${data.count}`
         );
       }catch(err){
         alert("Ошибка закрытия смены: " + err);
@@ -1016,7 +791,6 @@
     /**********************
      * Events
      **********************/
-    // Search suggest
     el.search.addEventListener("input", ()=>{
       const items = suggest(el.search.value);
       showSuggest(items);
@@ -1071,7 +845,6 @@
       hideSuggest();
     });
 
-    // cart controls
     el.cartBody.addEventListener("click", (e)=>{
       const btn = e.target.closest("button");
       if (!btn) return;
@@ -1088,7 +861,6 @@
       }
     });
 
-    // cart qty input change
     el.cartBody.addEventListener("change", (e)=>{
       const inp = e.target.closest('input[data-act="qty"]');
       if (!inp) return;
@@ -1096,36 +868,25 @@
       setItemQtyFromInput(idx, inp.value);
     });
 
-    // discount
-    el.discountBtn.addEventListener("click", setDiscountPrompt);
-    el.discountClearBtn.addEventListener("click", clearDiscount);
-
-    // payment buttons
     el.cashBtn.addEventListener("click", ()=>{ setPayment("cash"); pay(); });
     el.cardBtn.addEventListener("click", ()=>{ setPayment("card"); pay(); });
     el.deliveryBtn.addEventListener("click", ()=>{ setPayment("delivery"); pay(); });
-    el.corpBtn.addEventListener("click", corporatePayFlow);
 
     el.copyBtn.addEventListener("click", copyReceipt);
     el.clearBtn.addEventListener("click", ()=>{
       if (!cart.length) return;
       if (!confirm("Очистить чек?")) return;
       cart = [];
-      discountAmount = 0;
-      corporateDiscountPercent = 0;
       renderCart();
     });
 
     el.closeShiftBtn.addEventListener("click", closeShift);
-
     el.refreshBtn.addEventListener("click", ()=>refreshState().catch(err=>alert("Ошибка: "+err)));
 
-    // tabs
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click", ()=>setTab(b.dataset.tab));
     });
 
-    // categories
     el.catBar.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-cat]");
       if (!btn) return;
@@ -1156,7 +917,6 @@
       renderStopList();
     });
 
-    // quick add
     el.quickGrid.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-qid]");
       if (!btn) return;
@@ -1165,25 +925,6 @@
       if (!p || !isAvailable(p)) return;
       addToCart(p, getQtyAdd());
     });
-
-    /**********************
-     * Stop tabs renderers (reuse)
-     **********************/
-    function renderStopCats(){
-      el.stopCatBar.innerHTML = MAIN_CATS.map(c =>
-        `<button class="catBtn ${c===stopCatFilter?"active":""}" data-stopcat="${esc(c)}" type="button">${esc(c)}</button>`
-      ).join("");
-
-      if (stopCatFilter === "Бутылки/Банки"){
-        el.stopSubBar.style.display = "flex";
-        el.stopSubBar.innerHTML = BOTTLE_SUB.map(s =>
-          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>`
-        ).join("");
-      } else {
-        el.stopSubBar.style.display = "none";
-        el.stopSubBar.innerHTML = "";
-      }
-    }
 
     /**********************
      * Init
