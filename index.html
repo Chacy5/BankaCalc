@@ -6,16 +6,18 @@
   <title>BANKA POS</title>
   <style>
     :root{
-      /* palette inspired by your PDF (warm yellow paper + black type) */
-      --paper:#f2dc85;
-      --paper2:#f7e6a8;
+      /* Banka palette */
+      --paper:#f2dc85;     /* warm yellow */
+      --paper2:#f7e6a8;    /* lighter */
       --ink:#111111;
       --muted:#2b2b2b;
-      --card:#fff7d6;
       --line:rgba(0,0,0,.14);
 
-      --accent:#f4b400;      /* beer gold */
-      --accent2:#ffcc33;     /* lighter */
+      --card:rgba(255,255,255,.35);
+      --card2:rgba(255,255,255,.55);
+
+      --accent:#f4b400;    /* beer gold */
+      --accent2:#ffcc33;
       --danger:#d83a3a;
       --ok:#0aa383;
 
@@ -40,21 +42,13 @@
       display:flex;align-items:center;justify-content:space-between;gap:12px;
     }
     .brand{display:flex;align-items:center;gap:12px}
-    .brand img{width:52px;height:52px;border-radius:14px;object-fit:cover;background:#fff;border:1px solid var(--line)}
-    .brandTitle{
-      display:flex;flex-direction:column;gap:2px;
-    }
+    .brand img{width:52px;height:52px;border-radius:14px;object-fit:contain;background:#fff;border:1px solid var(--line);padding:6px}
+    .brandTitle{display:flex;flex-direction:column;gap:2px}
     .brandTitle .name{
-      font-weight:1100;
-      letter-spacing:.4px;
-      font-size:20px;
-      line-height:1.1;
+      font-weight:1100;letter-spacing:.4px;font-size:20px;line-height:1.1;
     }
     .brandTitle .city{
-      font-weight:1000;
-      color:var(--ink);
-      cursor:pointer;
-      display:inline-flex;gap:10px;align-items:baseline;flex-wrap:wrap;
+      font-weight:1000;color:var(--ink);cursor:pointer;display:inline-flex;gap:10px;align-items:baseline;flex-wrap:wrap;
     }
     .brandTitle .city span{
       border-bottom:2px dashed rgba(0,0,0,.35);
@@ -70,6 +64,7 @@
       background:rgba(255,255,255,.35);
       font-size:12px;
       font-weight:900;
+      white-space:nowrap;
     }
     .badge{color:var(--ink);font-weight:1100}
     .badge.accent{color:var(--ink);background:rgba(244,180,0,.35);border-radius:999px;padding:3px 8px;border:1px solid rgba(0,0,0,.1)}
@@ -77,30 +72,20 @@
     .wrap{max-width:1380px;margin:0 auto;display:grid;grid-template-columns: 1.15fr .85fr;gap:12px}
 
     .card{
-      background:rgba(255,255,255,.35);
+      background:var(--card);
       border:1px solid var(--line);
       border-radius:var(--radius);
       padding:12px;
     }
-
-    h1{
-      margin:0 0 10px 0;
-      font-size:18px;
-      font-weight:1100;
-      letter-spacing:.3px;
-    }
+    h1{margin:0 0 10px 0;font-size:18px;font-weight:1100;letter-spacing:.3px}
     h2{
       margin:12px 0 8px 0;
-      font-size:12px;
-      font-weight:1100;
-      color:rgba(0,0,0,.65);
-      letter-spacing:.4px;
-      text-transform:uppercase;
+      font-size:12px;font-weight:1100;color:rgba(0,0,0,.65);
+      letter-spacing:.4px;text-transform:uppercase;
     }
 
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-    input, button{
+    input, button, select{
       border-radius:16px;
       border:1px solid var(--line);
       padding:12px 12px;
@@ -109,33 +94,23 @@
       color:var(--ink);
       background:rgba(255,255,255,.55);
     }
-    input:focus{
+    input:focus, select:focus{
       border-color:rgba(0,0,0,.35);
       box-shadow:0 0 0 3px rgba(244,180,0,.25);
     }
     button{cursor:pointer;user-select:none;font-weight:1000}
-    button.primary{
-      background:rgba(244,180,0,.65);
-      border-color:rgba(0,0,0,.18);
-    }
+    button.primary{background:rgba(244,180,0,.65);border-color:rgba(0,0,0,.18)}
     button.primary:hover{background:rgba(244,180,0,.78)}
     button.ghost{background:rgba(255,255,255,.25)}
     button.ghost:hover{background:rgba(255,255,255,.40)}
-    button.danger{
-      background:rgba(216,58,58,.12);
-      border-color:rgba(216,58,58,.35);
-      color:var(--danger);
-    }
-    button.ok{
-      background:rgba(10,163,131,.14);
-      border-color:rgba(10,163,131,.35);
-      color:var(--ok);
-    }
+    button.danger{background:rgba(216,58,58,.12);border-color:rgba(216,58,58,.35);color:var(--danger)}
+    button.ok{background:rgba(10,163,131,.14);border-color:rgba(10,163,131,.35);color:var(--ok)}
+    button.tabBtn.active{background:rgba(244,180,0,.40)}
 
     .searchBox{position:relative;flex:1;min-width:280px}
     .suggest{
       position:absolute;left:0;right:0;top:52px;
-      background:rgba(255,255,255,.85);
+      background:rgba(255,255,255,.90);
       border:1px solid var(--line);
       border-radius:16px;
       overflow:hidden;
@@ -165,6 +140,7 @@
       padding:2px 8px;
       border-radius:999px;
       margin-left:6px;
+      white-space:nowrap;
     }
 
     table{width:100%;border-collapse:collapse}
@@ -202,10 +178,39 @@
     .stopItem .title{font-weight:1100}
     .stopItem .meta{font-size:12px;color:rgba(0,0,0,.65);margin-top:4px;font-weight:900}
 
+    /* Admin */
+    .adminGrid{display:grid;grid-template-columns:1fr;gap:12px}
+    .adminRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .adminCard{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:12px;
+    }
+    .kpiGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .kpi{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.55);
+    }
+    .kpi .label{font-size:12px;color:rgba(0,0,0,.65);font-weight:1000;text-transform:uppercase;letter-spacing:.3px}
+    .kpi .value{font-size:20px;font-weight:1200;margin-top:4px}
+    .kpi .sub{font-size:12px;color:rgba(0,0,0,.65);font-weight:900;margin-top:2px}
+    .adminTableWrap{
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow:hidden;
+      background:rgba(255,255,255,.55);
+    }
+    .adminTableWrap table th, .adminTableWrap table td{border-bottom:1px solid rgba(0,0,0,.10)}
+    .adminTools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+
     @media (max-width: 980px){
       .wrap{grid-template-columns:1fr}
       .quickGrid{grid-template-columns:1fr}
       .gridBtns button{min-width:140px}
+      .kpiGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
   </style>
 </head>
@@ -219,13 +224,17 @@
         <div class="city" id="cityName"><span>Batumi</span> <span class="hint">(кликни, чтобы поменять)</span></div>
       </div>
     </div>
+
     <div class="row" style="gap:8px">
+      <button id="tabPos" class="ghost tabBtn active" type="button">Касса</button>
+      <button id="tabAdmin" class="ghost tabBtn" type="button">Администрирование</button>
       <span class="pill">Статус: <span id="syncStatus" class="badge accent">…</span></span>
       <span class="pill">Оплата: <span id="payModeLabel" class="badge accent">Наличные</span></span>
     </div>
   </div>
 
-  <div class="wrap">
+  <!-- POS -->
+  <div class="wrap" id="posWrap">
     <!-- LEFT -->
     <div class="card">
       <h1>Касса</h1>
@@ -326,17 +335,77 @@
     </div>
   </div>
 
+  <!-- ADMIN -->
+  <div id="adminPanel" style="display:none;max-width:1380px;margin:0 auto">
+    <div class="adminGrid">
+      <div class="adminCard">
+        <h1>Администрирование</h1>
+        <div class="adminRow">
+          <span class="pill">Доступ: <span id="adminStatus" class="badge accent">нет</span></span>
+
+          <input id="adminDate" type="date" />
+          <button id="adminDayBtn" class="primary" type="button">Итоги дня</button>
+
+          <input id="adminYm" type="month" />
+          <button id="adminMonthBtn" class="primary" type="button">Итоги месяца</button>
+
+          <button id="adminEmpBtn" class="ok" type="button">Корпоративка по сотрудникам</button>
+          <button id="adminInvBtn" class="ghost" type="button">Остатки</button>
+          <button id="adminStopsBtn" class="ghost" type="button">Стопы</button>
+
+          <button id="adminLogoutBtn" class="danger" type="button">Выйти</button>
+        </div>
+
+        <div class="muted" style="margin-top:10px">
+          ⚠️ Пароль проверяется на стороне Google Script. Но помни: если касса публичная, “идеальной” защиты без логина всё равно нет.
+        </div>
+      </div>
+
+      <div class="adminCard">
+        <h2>Сводка</h2>
+        <div class="kpiGrid">
+          <div class="kpi"><div class="label">Наличные</div><div class="value" id="kpiCash">0</div><div class="sub">GEL</div></div>
+          <div class="kpi"><div class="label">Карта</div><div class="value" id="kpiCard">0</div><div class="sub">GEL</div></div>
+          <div class="kpi"><div class="label">Доставка</div><div class="value" id="kpiDelivery">0</div><div class="sub">GEL</div></div>
+          <div class="kpi"><div class="label">Корпоративный</div><div class="value" id="kpiCorp">0</div><div class="sub">GEL</div></div>
+        </div>
+        <div class="kpiGrid" style="margin-top:10px">
+          <div class="kpi"><div class="label">ИТОГО</div><div class="value" id="kpiTotal">0</div><div class="sub">GEL</div></div>
+          <div class="kpi"><div class="label">Чеков</div><div class="value" id="kpiCount">0</div><div class="sub">&nbsp;</div></div>
+          <div class="kpi"><div class="label">Период</div><div class="value" id="kpiPeriod">—</div><div class="sub">&nbsp;</div></div>
+          <div class="kpi"><div class="label">Режим</div><div class="value" id="kpiMode">—</div><div class="sub">&nbsp;</div></div>
+        </div>
+      </div>
+
+      <div class="adminCard">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Таблица</h2>
+          <div class="adminTools">
+            <input id="adminSearch" placeholder="Поиск в таблице…" style="min-width:260px" />
+            <button id="adminExportBtn" class="ghost" type="button">Экспорт CSV</button>
+          </div>
+        </div>
+        <div class="adminTableWrap" style="margin-top:10px">
+          <table>
+            <thead id="adminThead"></thead>
+            <tbody id="adminTbody"></tbody>
+          </table>
+        </div>
+        <div class="muted" style="margin-top:10px" id="adminHint"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     /**********************
      * CONFIG
      **********************/
-    const API_URL   = "https://script.google.com/macros/s/AKfycby2G7iiT8nY7-kncAVHiB1COGtqQ7YPXg2PeQcNR5wr23yhvON-KsDUN2EIO__fKxrD/exec";
+    const API_URL   = "https://script.google.com/macros/s/AKfycbz7TcGNe6EWs5TrHn32fzXf7IbsjqSfj7bbOigLFFzrNmLuK4qLUjItG-RJ8r6jVNn2/exec";
     const API_TOKEN = "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2";
 
     const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
     const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose"];
     const SUB_SET = new Set(BOTTLE_SUB.map(x=>x.toLowerCase()));
-
     const EMPLOYEES = ["Ви","Виталий","Зура","Джули"];
     let corporateEmployee = "";
 
@@ -359,6 +428,19 @@
       if (x===null || x===undefined) return NaN;
       return Number(String(x).replace(",", ".").trim());
     }
+    function todayKey(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    function thisYm(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      return `${yyyy}-${mm}`;
+    }
 
     function tapNumber(name){
       const m = String(name||"").match(/кран\s*(\d+)/i);
@@ -371,6 +453,13 @@
       return a.name.localeCompare(b.name, "ru");
     }
 
+    async function apiGet(path, params={}){
+      const qs = new URLSearchParams({ path, token: API_TOKEN, ...params });
+      const res = await fetch(`${API_URL}?${qs.toString()}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "API error");
+      return data;
+    }
     async function apiPost(body){
       const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
         method:"POST",
@@ -381,16 +470,27 @@
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }
-    async function apiGet(path){
-      const url = `${API_URL}?path=${encodeURIComponent(path)}&token=${encodeURIComponent(API_TOKEN)}`;
-      const res = await fetch(url);
+
+    async function apiGetAdmin(path, params={}){
+      const adminPassword = sessionStorage.getItem("banka_admin_password") || "";
+      const qs = new URLSearchParams({ path, token: API_TOKEN, adminPassword, ...params });
+      const res = await fetch(`${API_URL}?${qs.toString()}`);
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "API error");
+      if (!data.ok) throw new Error(data.error || "Admin API error");
       return data;
     }
 
     const el = {
       cityName: document.getElementById("cityName"),
+      syncStatus: document.getElementById("syncStatus"),
+      payModeLabel: document.getElementById("payModeLabel"),
+
+      tabPos: document.getElementById("tabPos"),
+      tabAdmin: document.getElementById("tabAdmin"),
+      posWrap: document.getElementById("posWrap"),
+      adminPanel: document.getElementById("adminPanel"),
+
+      // POS
       search: document.getElementById("search"),
       suggest: document.getElementById("suggest"),
       qtyAdd: document.getElementById("qtyAdd"),
@@ -401,8 +501,6 @@
       cartBody: document.getElementById("cartBody"),
       itemsCount: document.getElementById("itemsCount"),
       grandTotal: document.getElementById("grandTotal"),
-      syncStatus: document.getElementById("syncStatus"),
-      payModeLabel: document.getElementById("payModeLabel"),
 
       discountLabel: document.getElementById("discountLabel"),
       discountEmpLabel: document.getElementById("discountEmpLabel"),
@@ -430,6 +528,32 @@
       stopCatBar: document.getElementById("stopCatBar"),
       stopSubBar: document.getElementById("stopSubBar"),
       stopList: document.getElementById("stopList"),
+
+      // ADMIN
+      adminStatus: document.getElementById("adminStatus"),
+      adminDate: document.getElementById("adminDate"),
+      adminYm: document.getElementById("adminYm"),
+      adminDayBtn: document.getElementById("adminDayBtn"),
+      adminMonthBtn: document.getElementById("adminMonthBtn"),
+      adminEmpBtn: document.getElementById("adminEmpBtn"),
+      adminInvBtn: document.getElementById("adminInvBtn"),
+      adminStopsBtn: document.getElementById("adminStopsBtn"),
+      adminLogoutBtn: document.getElementById("adminLogoutBtn"),
+
+      kpiCash: document.getElementById("kpiCash"),
+      kpiCard: document.getElementById("kpiCard"),
+      kpiDelivery: document.getElementById("kpiDelivery"),
+      kpiCorp: document.getElementById("kpiCorp"),
+      kpiTotal: document.getElementById("kpiTotal"),
+      kpiCount: document.getElementById("kpiCount"),
+      kpiPeriod: document.getElementById("kpiPeriod"),
+      kpiMode: document.getElementById("kpiMode"),
+
+      adminSearch: document.getElementById("adminSearch"),
+      adminExportBtn: document.getElementById("adminExportBtn"),
+      adminThead: document.getElementById("adminThead"),
+      adminTbody: document.getElementById("adminTbody"),
+      adminHint: document.getElementById("adminHint"),
     };
 
     let state = null;
@@ -463,12 +587,10 @@
 
       return { main: "Снеки", sub: "" };
     }
-
     function withMapped(p){
       const m = mapCategoryFromSheet(p);
       return { ...p, mainCat: m.main, subCat: m.sub || "" };
     }
-
     function passesFilter(p, main, sub){
       if (main === "Все") return true;
       if (p.mainCat !== main) return false;
@@ -481,7 +603,6 @@
 
     function applyStateToUI(newState){
       state = newState;
-
       catalog = (state.products || []).map(p => withMapped({
         id: String(p.id),
         name: p.name,
@@ -491,7 +612,6 @@
         deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
         track: p.track || "count"
       }));
-
       stopSet = new Set(state.stopIds || []);
       el.stopCount.textContent = String(stopSet.size);
       el.syncStatus.textContent = "OK";
@@ -594,7 +714,6 @@
 
     function addToCart(p, qtyValue){
       const q = interpretQtyForProduct(p, qtyValue);
-
       const existing = cart.find(x => x.productId===p.id && x.displayUnit===q.displayUnit);
       if (existing){
         existing.trackQty = Math.round((existing.trackQty + q.trackQty)*100)/100;
@@ -943,7 +1062,7 @@
 
     async function closeShift(){
       try{
-        const data = await apiGet("shiftSummary");
+        const data = await apiGet("shiftSummary", { date: todayKey() });
         alert(
           `Смена за ${data.dayKey}\n\n` +
           `Наличные: ${money(data.cash)} GEL\n` +
@@ -981,12 +1100,236 @@
       if (t==="stop") renderStopList();
     }
 
+    function showAdmin(on){
+      el.posWrap.style.display = on ? "none" : "";
+      el.adminPanel.style.display = on ? "" : "none";
+      el.tabPos.classList.toggle("active", !on);
+      el.tabAdmin.classList.toggle("active", on);
+    }
+
+    // -------- ADMIN TABLE RENDER --------
+    let adminCurrentRows = [];
+    let adminCurrentCols = [];
+    let adminCurrentTitle = "";
+    function setKpi({cash=0,card=0,delivery=0,corporate=0,total=0,count=0, period="—", mode="—"}){
+      el.kpiCash.textContent = money(cash);
+      el.kpiCard.textContent = money(card);
+      el.kpiDelivery.textContent = money(delivery);
+      el.kpiCorp.textContent = money(corporate);
+      el.kpiTotal.textContent = money(total);
+      el.kpiCount.textContent = String(count);
+      el.kpiPeriod.textContent = String(period);
+      el.kpiMode.textContent = String(mode);
+    }
+
+    function renderAdminTable(cols, rows, hint=""){
+      adminCurrentCols = cols.slice();
+      adminCurrentRows = rows.slice();
+      el.adminHint.textContent = hint || "";
+
+      el.adminThead.innerHTML = `<tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>`;
+      el.adminTbody.innerHTML = rows.map(r=>{
+        return `<tr>${cols.map(c=>`<td>${esc(r[c] ?? "")}</td>`).join("")}</tr>`;
+      }).join("");
+
+      // apply current search filter
+      applyAdminSearch();
+    }
+
+    function applyAdminSearch(){
+      const q = normalize(el.adminSearch.value);
+      const cols = adminCurrentCols;
+      const rows = adminCurrentRows;
+
+      const filtered = !q ? rows : rows.filter(r=>{
+        return cols.some(c => normalize(r[c]).includes(q));
+      });
+
+      el.adminTbody.innerHTML = filtered.map(r=>{
+        return `<tr>${cols.map(c=>`<td>${esc(r[c] ?? "")}</td>`).join("")}</tr>`;
+      }).join("") || `<tr><td colspan="${cols.length}" class="muted">Нет строк</td></tr>`;
+    }
+
+    function exportAdminCSV(){
+      const cols = adminCurrentCols;
+      const q = normalize(el.adminSearch.value);
+
+      let rows = adminCurrentRows;
+      if (q){
+        rows = rows.filter(r=> cols.some(c => normalize(r[c]).includes(q)));
+      }
+
+      const escCsv = (v)=>{
+        const s = String(v ?? "");
+        if (/[",\n;]/.test(s)) return `"${s.replaceAll('"','""')}"`;
+        return s;
+      };
+
+      const lines = [];
+      lines.push(cols.map(escCsv).join(";"));
+      rows.forEach(r=>{
+        lines.push(cols.map(c=>escCsv(r[c])).join(";"));
+      });
+
+      const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `banka_admin_${adminCurrentTitle || "export"}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    async function adminLoginFlow(){
+      let p = sessionStorage.getItem("banka_admin_password");
+      if (!p){
+        p = prompt("Пароль администрирования:");
+        if (p === null) return false;
+        sessionStorage.setItem("banka_admin_password", String(p));
+      }
+      try{
+        await apiGetAdmin("admin/day", { date: todayKey() });
+        el.adminStatus.textContent = "OK";
+        return true;
+      }catch(err){
+        sessionStorage.removeItem("banka_admin_password");
+        el.adminStatus.textContent = "нет";
+        alert("Неверный пароль или ошибка доступа: " + err);
+        return false;
+      }
+    }
+
+    function adminLogout(){
+      sessionStorage.removeItem("banka_admin_password");
+      el.adminStatus.textContent = "нет";
+      setKpi({period:"—", mode:"—"});
+      renderAdminTable(["Сообщение"], [{ "Сообщение":"Вы вышли из админки." }], "");
+    }
+
+    async function adminDay(){
+      const date = el.adminDate.value || todayKey();
+      const data = await apiGetAdmin("admin/day", { date });
+      setKpi({ ...data, period: data.dayKey, mode:"Итоги дня" });
+
+      const cols = ["Категория","Сумма (GEL)"];
+      const rows = [
+        {"Категория":"Наличные","Сумма (GEL)": money(data.cash)},
+        {"Категория":"Карта","Сумма (GEL)": money(data.card)},
+        {"Категория":"Доставка","Сумма (GEL)": money(data.delivery)},
+        {"Категория":"Корпоративный","Сумма (GEL)": money(data.corporate)},
+        {"Категория":"ИТОГО","Сумма (GEL)": money(data.total)},
+        {"Категория":"Чеков","Сумма (GEL)": String(data.count)},
+      ];
+      adminCurrentTitle = `day_${data.dayKey}`;
+      renderAdminTable(cols, rows, `Итоги дня за ${data.dayKey}`);
+    }
+
+    async function adminMonth(){
+      const ym = el.adminYm.value || thisYm();
+      const data = await apiGetAdmin("admin/month", { ym });
+      const m = data.byMethod || {};
+      setKpi({
+        cash:m.cash||0, card:m.card||0, delivery:m.delivery||0, corporate:m.corporate||0,
+        total:m.total||0, count:m.count||0,
+        period: data.ym, mode:"Итоги месяца"
+      });
+
+      const cols = ["Дата","Сумма (GEL)","Чеков"];
+      const rows = (data.daily || []).map(x=>({
+        "Дата": x.dayKey,
+        "Сумма (GEL)": money(x.total),
+        "Чеков": String(x.count)
+      }));
+      adminCurrentTitle = `month_${data.ym}_daily`;
+      renderAdminTable(cols, rows, `По дням за ${data.ym} (сверху KPI — итоги месяца).`);
+    }
+
+    async function adminCorporateEmployees(){
+      const ym = el.adminYm.value || thisYm();
+      const data = await apiGetAdmin("admin/corporateByEmployeeMonth", { ym });
+      setKpi({ period:data.ym, mode:"Корпоративка по сотрудникам" });
+
+      const cols = ["Сотрудник","Сумма (GEL)"];
+      const rows = (data.employees || []).map(x=>({
+        "Сотрудник": x.employee,
+        "Сумма (GEL)": money(x.total)
+      }));
+      adminCurrentTitle = `corp_by_employee_${data.ym}`;
+      renderAdminTable(cols, rows, `Корпоративка за ${data.ym}`);
+    }
+
+    async function adminInventory(){
+      const data = await apiGetAdmin("admin/inventory");
+      setKpi({ period:"—", mode:"Остатки" });
+
+      const cols = ["Категория","Название","Track","Остаток","Запас кег","Стоп"];
+      const rows = (data.list || []).map(x=>{
+        const remain = (x.track === "keg")
+          ? (x.remainingL==null ? "" : `${money(x.remainingL)} л`)
+          : (x.qty==null ? "" : String(x.qty));
+        const sp = (x.track === "keg") ? (x.spares==null ? "" : String(x.spares)) : "";
+        return {
+          "Категория": x.cat || "",
+          "Название": x.name || "",
+          "Track": x.track || "",
+          "Остаток": remain,
+          "Запас кег": sp,
+          "Стоп": x.stop ? "YES" : ""
+        };
+      });
+
+      // сорт: краны по номеру, остальное по названию
+      rows.sort((a,b)=>{
+        const aIsTap = normalize(a["Категория"])==="краны";
+        const bIsTap = normalize(b["Категория"])==="краны";
+        if (aIsTap && bIsTap){
+          return tapNumber(a["Название"]) - tapNumber(b["Название"]);
+        }
+        if (aIsTap !== bIsTap) return aIsTap ? -1 : 1;
+        return String(a["Название"]).localeCompare(String(b["Название"]), "ru");
+      });
+
+      adminCurrentTitle = `inventory`;
+      renderAdminTable(cols, rows, `Все остатки (столбец “Стоп” = на стопе).`);
+    }
+
+    async function adminStops(){
+      const data = await apiGetAdmin("admin/stops");
+      setKpi({ period:"—", mode:"Стопы" });
+
+      const cols = ["Категория","Название","Track"];
+      const rows = (data.stops || []).map(x=>({
+        "Категория": x.cat || "",
+        "Название": x.name || "",
+        "Track": x.track || ""
+      }));
+
+      rows.sort((a,b)=>{
+        const aIsTap = normalize(a["Категория"])==="краны";
+        const bIsTap = normalize(b["Категория"])==="краны";
+        if (aIsTap && bIsTap){
+          return tapNumber(a["Название"]) - tapNumber(b["Название"]);
+        }
+        if (aIsTap !== bIsTap) return aIsTap ? -1 : 1;
+        return String(a["Название"]).localeCompare(String(b["Название"]), "ru");
+      });
+
+      adminCurrentTitle = `stops`;
+      renderAdminTable(cols, rows, `Только товары “на стопе”.`);
+    }
+
+    // -------- EVENTS --------
     el.cityName.addEventListener("click", ()=>{
       const current = el.cityName.querySelector("span")?.textContent || "Batumi";
       const v = prompt("Название города:", current.trim());
       if (v !== null && String(v).trim()){
         el.cityName.querySelector("span").textContent = String(v).trim();
       }
+    });
+
+    // POS tabs menu/stop
+    document.querySelectorAll(".tab").forEach(b=>{
+      b.addEventListener("click", ()=>setTab(b.dataset.tab));
     });
 
     el.search.addEventListener("input", ()=>{
@@ -1084,11 +1427,8 @@
     });
 
     el.closeShiftBtn.addEventListener("click", closeShift);
-    el.refreshBtn.addEventListener("click", ()=>refreshState().catch(err=>alert("Ошибка: "+err)));
 
-    document.querySelectorAll(".tab").forEach(b=>{
-      b.addEventListener("click", ()=>setTab(b.dataset.tab));
-    });
+    el.refreshBtn.addEventListener("click", ()=>refreshState().catch(err=>alert("Ошибка: "+err)));
 
     el.catBar.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-cat]");
@@ -1129,12 +1469,48 @@
       addToCart(p, getQtyAdd());
     });
 
+    // Admin UI events
+    el.adminSearch.addEventListener("input", applyAdminSearch);
+    el.adminExportBtn.addEventListener("click", exportAdminCSV);
+
+    el.adminLogoutBtn.addEventListener("click", ()=>{
+      adminLogout();
+      showAdmin(false);
+    });
+
+    el.adminDayBtn.addEventListener("click", ()=>adminDay().catch(err=>alert(err)));
+    el.adminMonthBtn.addEventListener("click", ()=>adminMonth().catch(err=>alert(err)));
+    el.adminEmpBtn.addEventListener("click", ()=>adminCorporateEmployees().catch(err=>alert(err)));
+    el.adminInvBtn.addEventListener("click", ()=>adminInventory().catch(err=>alert(err)));
+    el.adminStopsBtn.addEventListener("click", ()=>adminStops().catch(err=>alert(err)));
+
+    el.tabPos.addEventListener("click", ()=>showAdmin(false));
+
+    el.tabAdmin.addEventListener("click", async ()=>{
+      const ok = await adminLoginFlow();
+      if (!ok) return;
+      el.adminStatus.textContent = "OK";
+      showAdmin(true);
+      // по умолчанию: итоги дня
+      await adminDay().catch(()=>{});
+    });
+
+    function setAdminDefaults(){
+      el.adminDate.value = todayKey();
+      el.adminYm.value = thisYm();
+      renderAdminTable(["Сообщение"], [{"Сообщение":"Выберите отчёт выше."}], "");
+      setKpi({ period:"—", mode:"—" });
+    }
+
+    // -------- INIT --------
     (async ()=>{
       try{
+        setAdminDefaults();
         setPayment("cash");
         setTab("menu");
         renderMenuCats();
         renderStopCats();
+
         await refreshState();
       }catch(err){
         el.syncStatus.textContent = "ERR";
