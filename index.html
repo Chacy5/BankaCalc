@@ -3,121 +3,204 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>POS</title>
+  <title>BANKA POS</title>
   <style>
     :root{
-      --bg:#0b0c10;
-      --card:#111318;
-      --card2:#0f1116;
-      --line:#2a2f3a;
-      --text:#f5f7fb;
-      --muted:#aeb6c5;
+      /* palette inspired by your PDF (warm yellow paper + black type) */
+      --paper:#f2dc85;
+      --paper2:#f7e6a8;
+      --ink:#111111;
+      --muted:#2b2b2b;
+      --card:#fff7d6;
+      --line:rgba(0,0,0,.14);
 
-      /* logo-ish colors */
-      --beer:#f4b400;      /* yellow */
-      --beer2:#ffcc33;     /* lighter yellow */
-      --black:#0c0d10;
-      --danger:#ff5c5c;
-      --ok:#41e6c6;
+      --accent:#f4b400;      /* beer gold */
+      --accent2:#ffcc33;     /* lighter */
+      --danger:#d83a3a;
+      --ok:#0aa383;
+
+      --radius:18px;
     }
 
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    body{margin:0;background:var(--bg);color:var(--text);padding:14px}
+    body{
+      margin:0;
+      background:radial-gradient(1200px 600px at 30% -10%, var(--paper2), var(--paper));
+      color:var(--ink);
+      padding:14px;
+    }
 
     .topbar{
       max-width:1380px;margin:0 auto 12px auto;
-      background:linear-gradient(90deg, rgba(244,180,0,.18), rgba(0,0,0,0));
       border:1px solid var(--line);
-      border-radius:18px;
+      border-radius:22px;
       padding:10px 12px;
+      background:rgba(255,255,255,.22);
+      backdrop-filter: blur(6px);
       display:flex;align-items:center;justify-content:space-between;gap:12px;
     }
-    .brand{display:flex;align-items:center;gap:10px}
-    .brand img{width:44px;height:44px;border-radius:12px;object-fit:cover;background:#fff}
-    .brandName{
-      font-weight:1000;letter-spacing:.2px;
-      display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:52px;height:52px;border-radius:14px;object-fit:cover;background:#fff;border:1px solid var(--line)}
+    .brandTitle{
+      display:flex;flex-direction:column;gap:2px;
     }
-    .brandName .city{
-      font-size:18px;
-      color:var(--beer2);
+    .brandTitle .name{
+      font-weight:1100;
+      letter-spacing:.4px;
+      font-size:20px;
+      line-height:1.1;
+    }
+    .brandTitle .city{
+      font-weight:1000;
+      color:var(--ink);
       cursor:pointer;
-      border-bottom:1px dashed rgba(255,204,51,.4);
+      display:inline-flex;gap:10px;align-items:baseline;flex-wrap:wrap;
     }
-    .brandName .hint{font-size:12px;color:var(--muted);font-weight:700}
+    .brandTitle .city span{
+      border-bottom:2px dashed rgba(0,0,0,.35);
+      padding-bottom:2px;
+    }
+    .brandTitle .hint{font-size:12px;color:rgba(0,0,0,.6);font-weight:800}
+
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:8px 10px;
+      background:rgba(255,255,255,.35);
+      font-size:12px;
+      font-weight:900;
+    }
+    .badge{color:var(--ink);font-weight:1100}
+    .badge.accent{color:var(--ink);background:rgba(244,180,0,.35);border-radius:999px;padding:3px 8px;border:1px solid rgba(0,0,0,.1)}
 
     .wrap{max-width:1380px;margin:0 auto;display:grid;grid-template-columns: 1.15fr .85fr;gap:12px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
-    h1{font-size:16px;margin:0 0 10px 0;font-weight:1000}
-    h2{font-size:13px;margin:12px 0 8px 0;color:var(--muted);font-weight:1000}
+
+    .card{
+      background:rgba(255,255,255,.35);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:12px;
+    }
+
+    h1{
+      margin:0 0 10px 0;
+      font-size:18px;
+      font-weight:1100;
+      letter-spacing:.3px;
+    }
+    h2{
+      margin:12px 0 8px 0;
+      font-size:12px;
+      font-weight:1100;
+      color:rgba(0,0,0,.65);
+      letter-spacing:.4px;
+      text-transform:uppercase;
+    }
 
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    input, button{
-      background:var(--card2);color:var(--text);
-      border:1px solid var(--line);border-radius:14px;padding:12px 12px;outline:none;
-      font-size:15px;
-    }
-    input:focus{border-color:rgba(255,204,51,.9);box-shadow:0 0 0 3px rgba(244,180,0,.12)}
-    button{cursor:pointer;user-select:none}
-    button.primary{border-color:rgba(244,180,0,.8);background:rgba(244,180,0,.16)}
-    button.primary:hover{background:rgba(244,180,0,.22)}
-    button.ghost{background:transparent}
-    button.danger{border-color:rgba(255,92,92,.55);background:rgba(255,92,92,.14)}
-    button.danger:hover{background:rgba(255,92,92,.22)}
-    button.ok{border-color:rgba(65,230,198,.6);background:rgba(65,230,198,.12)}
-    button.ok:hover{background:rgba(65,230,198,.18)}
 
-    .muted{color:var(--muted);font-size:12px}
-    .badge{color:var(--beer2);font-weight:1000}
-    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
-    .hr{height:1px;background:var(--line);margin:12px 0}
+    input, button{
+      border-radius:16px;
+      border:1px solid var(--line);
+      padding:12px 12px;
+      outline:none;
+      font-size:15px;
+      color:var(--ink);
+      background:rgba(255,255,255,.55);
+    }
+    input:focus{
+      border-color:rgba(0,0,0,.35);
+      box-shadow:0 0 0 3px rgba(244,180,0,.25);
+    }
+    button{cursor:pointer;user-select:none;font-weight:1000}
+    button.primary{
+      background:rgba(244,180,0,.65);
+      border-color:rgba(0,0,0,.18);
+    }
+    button.primary:hover{background:rgba(244,180,0,.78)}
+    button.ghost{background:rgba(255,255,255,.25)}
+    button.ghost:hover{background:rgba(255,255,255,.40)}
+    button.danger{
+      background:rgba(216,58,58,.12);
+      border-color:rgba(216,58,58,.35);
+      color:var(--danger);
+    }
+    button.ok{
+      background:rgba(10,163,131,.14);
+      border-color:rgba(10,163,131,.35);
+      color:var(--ok);
+    }
 
     .searchBox{position:relative;flex:1;min-width:280px}
     .suggest{
-      position:absolute;left:0;right:0;top:52px;background:var(--card2);border:1px solid var(--line);
-      border-radius:14px;overflow:hidden;display:none;max-height:360px;overflow:auto;z-index:20
+      position:absolute;left:0;right:0;top:52px;
+      background:rgba(255,255,255,.85);
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow:hidden;
+      display:none;
+      max-height:360px;
+      overflow:auto;
+      z-index:20;
     }
     .suggest button{
-      width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);
-      padding:12px 12px;border-radius:0;font-size:15px
+      width:100%;
+      text-align:left;
+      background:transparent;
+      border:0;
+      border-bottom:1px solid var(--line);
+      padding:12px 12px;
+      border-radius:0;
+      font-size:15px;
+      font-weight:900;
     }
     .suggest button:last-child{border-bottom:0}
-    .suggest button:hover,.suggest button.active{background:rgba(244,180,0,.10)}
-    .priceTag{color:var(--beer2);font-weight:1000}
+    .suggest button:hover,.suggest button.active{background:rgba(244,180,0,.22)}
+    .priceTag{
+      display:inline-flex;
+      font-weight:1100;
+      background:rgba(244,180,0,.35);
+      border:1px solid rgba(0,0,0,.12);
+      padding:2px 8px;
+      border-radius:999px;
+      margin-left:6px;
+    }
 
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:14px;vertical-align:middle}
-    th{color:var(--muted);font-weight:1000;font-size:12px}
+    th{color:rgba(0,0,0,.6);font-weight:1100;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
     .right{text-align:right}
 
     .qty{display:flex;align-items:center;gap:8px;justify-content:flex-end}
-    .qty button{padding:10px 12px;border-radius:12px;font-size:16px;min-width:44px}
-    .qty input{width:96px;text-align:right;padding:10px 10px;border-radius:12px;font-size:15px}
-    .unit{min-width:26px;text-align:left}
+    .qty button{padding:10px 12px;border-radius:14px;font-size:16px;min-width:44px}
+    .qty input{width:96px;text-align:right;padding:10px 10px;border-radius:14px;font-size:15px;background:rgba(255,255,255,.8)}
+    .unit{min-width:26px;text-align:left;font-weight:900;color:rgba(0,0,0,.6)}
 
     .footerTotal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
-    .total{font-size:22px;font-weight:1100}
+    .total{font-size:24px;font-weight:1200;letter-spacing:.2px}
+    .muted{color:rgba(0,0,0,.65);font-size:12px;font-weight:900}
 
     .gridBtns{display:flex;gap:10px;flex-wrap:wrap}
     .gridBtns button{min-width:160px}
 
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{padding:10px 12px;border-radius:999px}
-    .tab.active{border-color:rgba(244,180,0,.8);background:rgba(244,180,0,.12)}
+    .tab.active{background:rgba(244,180,0,.40)}
     .catBar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 10px}
     .catBtn{padding:10px 12px;border-radius:999px;white-space:nowrap}
-    .catBtn.active{border-color:rgba(244,180,0,.8);background:rgba(244,180,0,.12)}
+    .catBtn.active{background:rgba(244,180,0,.40)}
     .subWrap{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:6px}
 
     .quickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-    .qbtn{padding:12px 12px;border-radius:14px;text-align:left}
-    .qbtn .name{font-weight:1000;font-size:15px}
-    .qbtn .meta{font-size:12px;color:var(--muted);margin-top:4px}
+    .qbtn{padding:12px 12px;border-radius:16px;text-align:left}
+    .qbtn .name{font-weight:1100;font-size:15px}
+    .qbtn .meta{font-size:12px;color:rgba(0,0,0,.65);margin-top:4px;font-weight:900}
 
     .stopList{display:flex;flex-direction:column;gap:8px}
-    .stopItem{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--card2)}
-    .stopItem .title{font-weight:1000}
-    .stopItem .meta{font-size:12px;color:var(--muted);margin-top:4px}
+    .stopItem{border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.55)}
+    .stopItem .title{font-weight:1100}
+    .stopItem .meta{font-size:12px;color:rgba(0,0,0,.65);margin-top:4px;font-weight:900}
 
     @media (max-width: 980px){
       .wrap{grid-template-columns:1fr}
@@ -128,18 +211,17 @@
 </head>
 <body>
 
-  <!-- TOP BAR -->
   <div class="topbar">
     <div class="brand">
       <img src="logo.png" alt="logo" />
-      <div class="brandName">
-        <div class="city" id="cityName">Batumi</div>
-        <div class="hint">(кликни, чтобы поменять город)</div>
+      <div class="brandTitle">
+        <div class="name">BANKA POS</div>
+        <div class="city" id="cityName"><span>Batumi</span> <span class="hint">(кликни, чтобы поменять)</span></div>
       </div>
     </div>
     <div class="row" style="gap:8px">
-      <span class="pill">Статус: <span id="syncStatus" class="badge">…</span></span>
-      <span class="pill">Оплата: <span id="payModeLabel" class="badge">Наличные</span></span>
+      <span class="pill">Статус: <span id="syncStatus" class="badge accent">…</span></span>
+      <span class="pill">Оплата: <span id="payModeLabel" class="badge accent">Наличные</span></span>
     </div>
   </div>
 
@@ -181,13 +263,13 @@
       </table>
 
       <div class="footerTotal">
-        <div class="muted">Позиций: <span id="itemsCount" class="badge">0</span></div>
+        <div class="muted">Позиций: <span id="itemsCount" class="badge accent">0</span></div>
         <div class="total">Итого: <span id="grandTotal">0</span> GEL</div>
       </div>
 
       <div class="muted" style="margin-top:6px">
-        Скидка покупателю: <span id="discountLabel" class="badge">0%</span> ·
-        Скидка сотруднику: <span id="discountEmpLabel" class="badge">0%</span>
+        Скидка покупателю: <span id="discountLabel" class="badge accent">0%</span> ·
+        Скидка сотруднику: <span id="discountEmpLabel" class="badge accent">0%</span>
       </div>
 
       <div class="gridBtns" style="margin-top:12px">
@@ -238,8 +320,9 @@
         <div id="stopList" class="stopList"></div>
       </div>
 
-      <div class="hr"></div>
-      <div class="muted">Категории берутся строго из столбца <b>cat</b> в Google Sheets.</div>
+      <div class="muted" style="margin-top:12px">
+        Категории берутся строго из столбца <b>cat</b> в Google Sheets.
+      </div>
     </div>
   </div>
 
@@ -247,31 +330,19 @@
     /**********************
      * CONFIG
      **********************/
-    const API_URL   = "https://script.google.com/macros/s/AKfycbyMIkxbquEtfNuFOYyiib-vfAEL0u6x-tccPDOqf0UVlxiZj-BF_p4PQc88CXhcsMvE/exec";
+    const API_URL   = "https://script.google.com/macros/s/AKfycby2G7iiT8nY7-kncAVHiB1COGtqQ7YPXg2PeQcNR5wr23yhvON-KsDUN2EIO__fKxrD/exec";
     const API_TOKEN = "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2";
 
-    /**********************
-     * Categories
-     **********************/
     const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
     const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose"];
     const SUB_SET = new Set(BOTTLE_SUB.map(x=>x.toLowerCase()));
 
-    /**********************
-     * Corporate
-     **********************/
     const EMPLOYEES = ["Ви","Виталий","Зура","Джули"];
     let corporateEmployee = "";
 
-    /**********************
-     * Discounts (%)
-     **********************/
-    let discountPercent = 0;         // customer (cash/card/delivery)
-    let employeeDiscountPercent = 0; // employee (corporate only)
+    let discountPercent = 0;
+    let employeeDiscountPercent = 0;
 
-    /**********************
-     * Helpers
-     **********************/
     function money(n){
       const x = Math.round((Number(n)||0)*100)/100;
       return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -289,7 +360,6 @@
       return Number(String(x).replace(",", ".").trim());
     }
 
-    // номер крана для сортировки
     function tapNumber(name){
       const m = String(name||"").match(/кран\s*(\d+)/i);
       return m ? Number(m[1]) : 9999;
@@ -319,12 +389,8 @@
       return data;
     }
 
-    /**********************
-     * DOM
-     **********************/
     const el = {
       cityName: document.getElementById("cityName"),
-
       search: document.getElementById("search"),
       suggest: document.getElementById("suggest"),
       qtyAdd: document.getElementById("qtyAdd"),
@@ -366,14 +432,11 @@
       stopList: document.getElementById("stopList"),
     };
 
-    /**********************
-     * State
-     **********************/
     let state = null;
     let catalog = [];
     let stopSet = new Set();
 
-    let paymentMethod = "cash"; // cash | card | delivery | corporate
+    let paymentMethod = "cash";
     let cart = [];
 
     let suggestItems = [];
@@ -384,9 +447,6 @@
     let stopCatFilter = "Все";
     let stopBottleSub = "IPA/APA";
 
-    /**********************
-     * Category mapping (ONLY from sheet cat)
-     **********************/
     function mapCategoryFromSheet(p){
       const raw = String(p.cat || "").trim();
       const lower = raw.toLowerCase();
@@ -395,15 +455,12 @@
         if (raw === "Бутылки/Банки") return { main: "Бутылки/Банки", sub: "Классика" };
         return { main: raw, sub: "" };
       }
-
       if (SUB_SET.has(lower)) {
         const real = BOTTLE_SUB.find(x => x.toLowerCase() === lower) || raw;
         return { main: "Бутылки/Банки", sub: real };
       }
-
       if (BOTTLE_SUB.includes(raw)) return { main:"Бутылки/Банки", sub: raw };
 
-      // fallback (если в таблице написали что-то другое)
       return { main: "Снеки", sub: "" };
     }
 
@@ -422,11 +479,9 @@
     function isAvailable(p){ return !stopSet.has(p.id); }
     function findById(id){ return catalog.find(p=>p.id===id) || null; }
 
-    /**********************
-     * Apply state
-     **********************/
     function applyStateToUI(newState){
       state = newState;
+
       catalog = (state.products || []).map(p => withMapped({
         id: String(p.id),
         name: p.name,
@@ -454,31 +509,14 @@
       applyStateToUI(data);
     }
 
-    /**********************
-     * Payment / Prices
-     **********************/
     function setPayment(method){
       paymentMethod = method;
-
       const label =
         method==="cash" ? "Наличные" :
         method==="card" ? "Карта" :
         method==="delivery" ? "Доставка" :
         "Корпоративная";
       el.payModeLabel.textContent = label;
-
-      // UI active states
-      const setBtn = (btn, on, clsOn="primary")=>{
-        btn.classList.toggle(clsOn, on);
-        btn.classList.toggle("ghost", !on);
-      };
-      setBtn(el.cashBtn, method==="cash");
-      setBtn(el.cardBtn, method==="card");
-      setBtn(el.deliveryBtn, method==="delivery");
-      // corporate у нас зеленым (ok)
-      el.corpBtn.classList.toggle("ok", true);
-      el.corpBtn.classList.toggle("primary", false);
-
       renderCart();
     }
 
@@ -493,33 +531,18 @@
     function lineSum(item){
       return Math.round(unitPriceFor(item) * item.qtyPricing * 100) / 100;
     }
-
-    function grossTotal(){
-      return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
-    }
-
+    function grossTotal(){ return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100; }
     function discountAmount(){
       const g = grossTotal();
       let pct = (paymentMethod === "corporate") ? employeeDiscountPercent : discountPercent;
       pct = Number(pct||0);
       if (!Number.isFinite(pct) || pct < 0) pct = 0;
       if (pct > 100) pct = 100;
-      const d = g * (pct/100);
-      return Math.round(d*100)/100;
+      return Math.round((g * (pct/100))*100)/100;
     }
+    function netTotal(){ return Math.round(Math.max(0, grossTotal()-discountAmount())*100)/100; }
+    function payableTotal(){ return (paymentMethod === "corporate") ? 0 : netTotal(); }
 
-    function netTotal(){
-      const n = grossTotal() - discountAmount();
-      return Math.round(Math.max(0, n)*100)/100;
-    }
-
-    function payableTotal(){
-      return (paymentMethod === "corporate") ? 0 : netTotal();
-    }
-
-    /**********************
-     * QtyAdd behavior
-     **********************/
     function getQtyAdd(){
       const v = parseNum(el.qtyAdd.value);
       if (!Number.isFinite(v) || v <= 0) return 1;
@@ -529,7 +552,6 @@
     function bestMatchFromInput(){
       const t = normalize(el.search.value);
       if (!t) return null;
-
       const pool = catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
       const exact = pool.find(p=>normalize(p.name)===t);
       if (exact) return exact;
@@ -538,16 +560,15 @@
 
     function stepForProduct(p){
       if (!p) return 1;
-      if (p.type==="per_kg" || p.track==="grams") return 50; // grams
-      if (p.type==="per_liter" || p.track==="liters" || p.track==="keg") return 0.5; // liters
-      return 1; // pcs
+      if (p.type==="per_kg" || p.track==="grams") return 50;
+      if (p.type==="per_liter" || p.track==="liters" || p.track==="keg") return 0.5;
+      return 1;
     }
 
     function adjustQtyAdd(dir){
       const p = bestMatchFromInput();
       const step = stepForProduct(p);
       let v = getQtyAdd();
-
       if (step === 0.5){
         v = Math.max(0.5, Math.round((v + dir*0.5)*10)/10);
       } else if (step === 50){
@@ -558,9 +579,6 @@
       el.qtyAdd.value = String(v);
     }
 
-    /**********************
-     * Cart logic
-     **********************/
     function interpretQtyForProduct(p, qtyValue){
       if (p.type==="per_kg" || p.track==="grams"){
         const grams = Math.max(1, Math.round(qtyValue));
@@ -603,7 +621,6 @@
 
     function adjustItem(idx, dir){
       const it = cart[idx]; if (!it) return;
-
       if (it.displayUnit === "г"){
         const newG = Math.max(1, Math.round(Number(it.displayQty) + dir*50));
         it.displayQty = newG; it.trackQty = newG; it.qtyPricing = newG/1000;
@@ -643,7 +660,7 @@
 
         return `<tr>
           <td>
-            <div style="font-weight:1000">${esc(it.name)}</div>
+            <div style="font-weight:1100">${esc(it.name)}</div>
             <div class="muted">${esc(it.mainCat)}${it.mainCat==="Бутылки/Банки" ? " · "+esc(it.subCat) : ""}</div>
           </td>
           <td class="right"><span class="priceTag">${money(showPrice)}${suffix}</span></td>
@@ -652,7 +669,7 @@
               <button type="button" data-act="dec" data-i="${idx}">−</button>
               <input type="number" step="0.1" inputmode="decimal" value="${esc(it.displayQty)}" data-act="qty" data-i="${idx}" />
               <button type="button" data-act="inc" data-i="${idx}">+</button>
-              <span class="muted unit">${esc(it.displayUnit)}</span>
+              <span class="unit">${esc(it.displayUnit)}</span>
             </div>
           </td>
           <td class="right"><b>${money(sum)}</b></td>
@@ -666,9 +683,6 @@
       el.grandTotal.textContent = money(payableTotal());
     }
 
-    /**********************
-     * Suggest
-     **********************/
     function showSuggest(items){
       suggestItems = items;
       activeSuggestIndex = items.length ? 0 : -1;
@@ -684,7 +698,7 @@
         return `<button type="button" data-idx="${i}" class="${i===activeSuggestIndex?"active":""}">
           <span class="muted">${esc(p.mainCat)}${p.mainCat==="Бутылки/Банки" ? " · "+esc(p.subCat) : ""} ·</span>
           ${esc(p.name)}
-          <span class="priceTag">· ${money(p.price)}${suffix}</span>
+          <span class="priceTag">${money(p.price)}${suffix}</span>
         </button>`;
       }).join("");
 
@@ -713,7 +727,7 @@
         .filter(isAvailable)
         .filter(p=>passesFilter(p, catFilter, bottleSub));
 
-      const scored = pool.map(p=>{
+      return pool.map(p=>{
         const n = normalize(p.name);
         let s = 0;
         if (n.startsWith(q)) s = 3;
@@ -723,17 +737,11 @@
         .sort((a,b)=> b.s-a.s || sortProducts(a.p, b.p))
         .slice(0, 14)
         .map(x=>x.p);
-
-      return scored;
     }
 
-    /**********************
-     * Categories UI
-     **********************/
     function availableFiltered(){
       return catalog.filter(isAvailable).filter(p=>passesFilter(p, catFilter, bottleSub));
     }
-
     function stoppedFiltered(){
       return catalog.filter(p=>stopSet.has(p.id)).filter(p=>passesFilter(p, stopCatFilter, stopBottleSub));
     }
@@ -809,9 +817,6 @@
       }).join("");
     }
 
-    /**********************
-     * Discounts UI
-     **********************/
     function promptPercent(title, current){
       const ans = prompt(title, String(current ?? 0));
       if (ans === null) return null;
@@ -820,30 +825,24 @@
       if (v > 100) v = 100;
       return Math.round(v*100)/100;
     }
-
     function setCustomerDiscount(){
       const v = promptPercent("Скидка покупателю (% 0–100):", discountPercent);
       if (v === null) return;
       discountPercent = v;
       renderCart();
     }
-
     function setEmployeeDiscount(){
       const v = promptPercent("Скидка сотруднику (% 0–100):", employeeDiscountPercent);
       if (v === null) return;
       employeeDiscountPercent = v;
       renderCart();
     }
-
     function clearDiscounts(){
       discountPercent = 0;
       employeeDiscountPercent = 0;
       renderCart();
     }
 
-    /**********************
-     * Copy / clear
-     **********************/
     async function copyReceipt(){
       const lines = cart.map(it=>{
         const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
@@ -852,10 +851,7 @@
         return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(Math.round(unit*it.qtyPricing*100)/100)} GEL`;
       });
 
-      const g = grossTotal();
-      const d = discountAmount();
-      const n = netTotal();
-
+      const g = grossTotal(), d = discountAmount(), n = netTotal();
       lines.push(`СУММА: ${money(g)} GEL`);
       if (d>0) lines.push(`СКИДКА: -${money(d)} GEL`);
       lines.push(`ИТОГО: ${money((paymentMethod==="corporate")?0:n)} GEL`);
@@ -870,14 +866,9 @@
       }
     }
 
-    /**********************
-     * Keg updated prompt handling
-     **********************/
     function buildKegSwitchesFromServer(res){
-      // Если сервер сообщил, что кега обновлена — спросим сколько налили из новой
       const switches = {};
       if (!res || !res.kegUpdated || !res.kegUpdated.length) return switches;
-
       for (const k of res.kegUpdated){
         const ans = prompt(`${k.name} — кега обновлена.\nСколько литров налито из новой кеги?`, "0");
         if (ans === null) continue;
@@ -887,9 +878,6 @@
       return switches;
     }
 
-    /**********************
-     * Pay
-     **********************/
     async function pay(){
       if (!cart.length){
         alert("Чек пустой.");
@@ -908,7 +896,6 @@
       const disc = discountAmount();
       const net = netTotal();
 
-      // первая попытка без kegSwitches
       let payload = {
         path:"sale",
         receiptId,
@@ -925,9 +912,6 @@
         el.syncStatus.textContent = "…";
         let res = await apiPost(payload);
 
-        // Если были обновления кег — перешлём одну доп.операцию с kegSwitches
-        // (проще: повторяем sale с тем же receiptId НЕ будем — вместо этого сразу включаем kegSwitches)
-        // Поэтому делаем так: если пришёл kegUpdated — сразу делаем второй POST с тем же receiptId и kegSwitches
         if (res.kegUpdated && res.kegUpdated.length){
           const switches = buildKegSwitchesFromServer(res);
           if (Object.keys(switches).length){
@@ -936,7 +920,6 @@
           }
         }
 
-        // low warnings
         if (res.lowWarnings && res.lowWarnings.length){
           const lines = res.lowWarnings.map(x => `${x.name} осталось ${x.remaining} ${x.unit}. Отключите этот товар в доставке`);
           alert(lines.join("\n"));
@@ -991,9 +974,6 @@
       await pay();
     }
 
-    /**********************
-     * Tabs
-     **********************/
     function setTab(t){
       document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t));
       el.menuTab.style.display = (t==="menu") ? "" : "none";
@@ -1001,12 +981,12 @@
       if (t==="stop") renderStopList();
     }
 
-    /**********************
-     * Events
-     **********************/
     el.cityName.addEventListener("click", ()=>{
-      const v = prompt("Название города:", el.cityName.textContent.trim());
-      if (v !== null && String(v).trim()) el.cityName.textContent = String(v).trim();
+      const current = el.cityName.querySelector("span")?.textContent || "Batumi";
+      const v = prompt("Название города:", current.trim());
+      if (v !== null && String(v).trim()){
+        el.cityName.querySelector("span").textContent = String(v).trim();
+      }
     });
 
     el.search.addEventListener("input", ()=>{
@@ -1086,13 +1066,11 @@
       setItemQtyFromInput(idx, inp.value);
     });
 
-    // payment buttons = pay now
     el.cashBtn.addEventListener("click", async ()=>{ setPayment("cash"); await pay(); });
     el.cardBtn.addEventListener("click", async ()=>{ setPayment("card"); await pay(); });
     el.deliveryBtn.addEventListener("click", async ()=>{ setPayment("delivery"); await pay(); });
     el.corpBtn.addEventListener("click", corporatePayFlow);
 
-    // discounts
     el.discountBtn.addEventListener("click", setCustomerDiscount);
     el.discountEmpBtn.addEventListener("click", setEmployeeDiscount);
     el.discountClearBtn.addEventListener("click", clearDiscounts);
@@ -1150,41 +1128,6 @@
       if (!p || !isAvailable(p)) return;
       addToCart(p, getQtyAdd());
     });
-
-    /**********************
-     * Init
-     **********************/
-    function renderMenuCats(){
-      el.catBar.innerHTML = MAIN_CATS.map(c =>
-        `<button class="catBtn ${c===catFilter?"active":""}" data-cat="${esc(c)}" type="button">${esc(c)}</button>`
-      ).join("");
-
-      if (catFilter === "Бутылки/Банки"){
-        el.subBar.style.display = "flex";
-        el.subBar.innerHTML = BOTTLE_SUB.map(s =>
-          `<button class="catBtn ${s===bottleSub?"active":""}" data-sub="${esc(s)}" type="button">${esc(s)}</button>`
-        ).join("");
-      } else {
-        el.subBar.style.display = "none";
-        el.subBar.innerHTML = "";
-      }
-    }
-
-    function renderStopCats(){
-      el.stopCatBar.innerHTML = MAIN_CATS.map(c =>
-        `<button class="catBtn ${c===stopCatFilter?"active":""}" data-stopcat="${esc(c)}" type="button">${esc(c)}</button>`
-      ).join("");
-
-      if (stopCatFilter === "Бутылки/Банки"){
-        el.stopSubBar.style.display = "flex";
-        el.stopSubBar.innerHTML = BOTTLE_SUB.map(s =>
-          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>`
-        ).join("");
-      } else {
-        el.stopSubBar.style.display = "none";
-        el.stopSubBar.innerHTML = "";
-      }
-    }
 
     (async ()=>{
       try{
