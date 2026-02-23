@@ -1,43 +1,80 @@
-    <!doctype html>
+<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>POS касса — Google Sheets</title>
+  <title>POS</title>
   <style>
     :root{
-      --bg:#0b0c10;--card:#12141a;--muted:#9aa3b2;--text:#e9eef7;
-      --line:#232837;--acc:#6fedd1;--danger:#ff5c5c;--warn:#ffd166;
+      --bg:#0b0c10;
+      --card:#111318;
+      --card2:#0f1116;
+      --line:#2a2f3a;
+      --text:#f5f7fb;
+      --muted:#aeb6c5;
+
+      /* logo-ish colors */
+      --beer:#f4b400;      /* yellow */
+      --beer2:#ffcc33;     /* lighter yellow */
+      --black:#0c0d10;
+      --danger:#ff5c5c;
+      --ok:#41e6c6;
     }
+
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     body{margin:0;background:var(--bg);color:var(--text);padding:14px}
-    .wrap{max-width:1300px;margin:0 auto;display:grid;grid-template-columns: 1.15fr .85fr;gap:12px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+
+    .topbar{
+      max-width:1380px;margin:0 auto 12px auto;
+      background:linear-gradient(90deg, rgba(244,180,0,.18), rgba(0,0,0,0));
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:10px 12px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:44px;height:44px;border-radius:12px;object-fit:cover;background:#fff}
+    .brandName{
+      font-weight:1000;letter-spacing:.2px;
+      display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    }
+    .brandName .city{
+      font-size:18px;
+      color:var(--beer2);
+      cursor:pointer;
+      border-bottom:1px dashed rgba(255,204,51,.4);
+    }
+    .brandName .hint{font-size:12px;color:var(--muted);font-weight:700}
+
+    .wrap{max-width:1380px;margin:0 auto;display:grid;grid-template-columns: 1.15fr .85fr;gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px}
     h1{font-size:16px;margin:0 0 10px 0;font-weight:1000}
-    h2{font-size:13px;margin:12px 0 8px 0;color:var(--muted);font-weight:900}
+    h2{font-size:13px;margin:12px 0 8px 0;color:var(--muted);font-weight:1000}
+
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    input, button, select{
-      background:#0f1117;color:var(--text);
-      border:1px solid var(--line);border-radius:12px;padding:12px 12px;outline:none;
+    input, button{
+      background:var(--card2);color:var(--text);
+      border:1px solid var(--line);border-radius:14px;padding:12px 12px;outline:none;
       font-size:15px;
     }
-    input:focus, select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(111,237,209,.12)}
+    input:focus{border-color:rgba(255,204,51,.9);box-shadow:0 0 0 3px rgba(244,180,0,.12)}
     button{cursor:pointer;user-select:none}
-    button.primary{border-color:rgba(111,237,209,.55);background:rgba(111,237,209,.14)}
-    button.primary:hover{background:rgba(111,237,209,.22)}
+    button.primary{border-color:rgba(244,180,0,.8);background:rgba(244,180,0,.16)}
+    button.primary:hover{background:rgba(244,180,0,.22)}
     button.ghost{background:transparent}
     button.danger{border-color:rgba(255,92,92,.55);background:rgba(255,92,92,.14)}
     button.danger:hover{background:rgba(255,92,92,.22)}
-    button.warn{border-color:rgba(255,209,102,.55);background:rgba(255,209,102,.12)}
-    button.warn:hover{background:rgba(255,209,102,.18)}
+    button.ok{border-color:rgba(65,230,198,.6);background:rgba(65,230,198,.12)}
+    button.ok:hover{background:rgba(65,230,198,.18)}
+
     .muted{color:var(--muted);font-size:12px}
-    .badge{color:var(--acc);font-weight:1000}
+    .badge{color:var(--beer2);font-weight:1000}
     .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
     .hr{height:1px;background:var(--line);margin:12px 0}
 
     .searchBox{position:relative;flex:1;min-width:280px}
     .suggest{
-      position:absolute;left:0;right:0;top:52px;background:#0f1117;border:1px solid var(--line);
+      position:absolute;left:0;right:0;top:52px;background:var(--card2);border:1px solid var(--line);
       border-radius:14px;overflow:hidden;display:none;max-height:360px;overflow:auto;z-index:20
     }
     .suggest button{
@@ -45,8 +82,8 @@
       padding:12px 12px;border-radius:0;font-size:15px
     }
     .suggest button:last-child{border-bottom:0}
-    .suggest button:hover,.suggest button.active{background:rgba(111,237,209,.10)}
-    .priceTag{color:var(--acc);font-weight:1000}
+    .suggest button:hover,.suggest button.active{background:rgba(244,180,0,.10)}
+    .priceTag{color:var(--beer2);font-weight:1000}
 
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;font-size:14px;vertical-align:middle}
@@ -55,7 +92,7 @@
 
     .qty{display:flex;align-items:center;gap:8px;justify-content:flex-end}
     .qty button{padding:10px 12px;border-radius:12px;font-size:16px;min-width:44px}
-    .qty input{width:92px;text-align:right;padding:10px 10px;border-radius:12px;font-size:15px}
+    .qty input{width:96px;text-align:right;padding:10px 10px;border-radius:12px;font-size:15px}
     .unit{min-width:26px;text-align:left}
 
     .footerTotal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
@@ -66,10 +103,10 @@
 
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{padding:10px 12px;border-radius:999px}
-    .tab.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
+    .tab.active{border-color:rgba(244,180,0,.8);background:rgba(244,180,0,.12)}
     .catBar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 10px}
     .catBtn{padding:10px 12px;border-radius:999px;white-space:nowrap}
-    .catBtn.active{border-color:rgba(111,237,209,.6);background:rgba(111,237,209,.12)}
+    .catBtn.active{border-color:rgba(244,180,0,.8);background:rgba(244,180,0,.12)}
     .subWrap{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:6px}
 
     .quickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -78,7 +115,7 @@
     .qbtn .meta{font-size:12px;color:var(--muted);margin-top:4px}
 
     .stopList{display:flex;flex-direction:column;gap:8px}
-    .stopItem{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#0f1117}
+    .stopItem{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--card2)}
     .stopItem .title{font-weight:1000}
     .stopItem .meta{font-size:12px;color:var(--muted);margin-top:4px}
 
@@ -90,6 +127,22 @@
   </style>
 </head>
 <body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="logo" />
+      <div class="brandName">
+        <div class="city" id="cityName">Batumi</div>
+        <div class="hint">(кликни, чтобы поменять город)</div>
+      </div>
+    </div>
+    <div class="row" style="gap:8px">
+      <span class="pill">Статус: <span id="syncStatus" class="badge">…</span></span>
+      <span class="pill">Оплата: <span id="payModeLabel" class="badge">Наличные</span></span>
+    </div>
+  </div>
+
   <div class="wrap">
     <!-- LEFT -->
     <div class="card">
@@ -105,16 +158,12 @@
 
         <div class="row" style="gap:8px">
           <button id="qtyMinus" class="ghost" type="button">−</button>
-          <input id="qtyAdd" type="number" step="1" min="0" value="1" style="width:90px;text-align:right" inputmode="decimal" />
+          <input id="qtyAdd" type="number" step="0.5" min="0" value="1"
+                 style="width:90px;text-align:right" inputmode="decimal" />
           <button id="qtyPlus" class="ghost" type="button">+</button>
         </div>
 
         <button id="addBtn" class="primary" type="button">Добавить</button>
-      </div>
-
-      <div class="row" style="margin:8px 0 4px">
-        <span class="pill">Статус: <span id="syncStatus" class="badge">…</span></span>
-        <span class="pill">Оплата: <span id="payModeLabel" class="badge">Наличные</span></span>
       </div>
 
       <h2>Чек</h2>
@@ -136,16 +185,28 @@
         <div class="total">Итого: <span id="grandTotal">0</span> GEL</div>
       </div>
 
+      <div class="muted" style="margin-top:6px">
+        Скидка покупателю: <span id="discountLabel" class="badge">0%</span> ·
+        Скидка сотруднику: <span id="discountEmpLabel" class="badge">0%</span>
+      </div>
+
       <div class="gridBtns" style="margin-top:12px">
         <button id="cashBtn" class="primary" type="button">Наличные</button>
         <button id="cardBtn" class="ghost" type="button">Карта</button>
         <button id="deliveryBtn" class="ghost" type="button">Доставка</button>
+        <button id="corpBtn" class="ok" type="button">Корпоративная</button>
+      </div>
+
+      <div class="gridBtns" style="margin-top:10px">
+        <button id="discountBtn" class="ghost" type="button">Скидка</button>
+        <button id="discountEmpBtn" class="ghost" type="button">Скидка сотруднику</button>
+        <button id="discountClearBtn" class="ghost" type="button">Сброс скидок</button>
         <button id="copyBtn" class="ghost" type="button">Копировать чек</button>
         <button id="clearBtn" class="danger" type="button">Очистить</button>
       </div>
 
       <div class="gridBtns" style="margin-top:10px">
-        <button id="closeShiftBtn" class="warn" type="button">Закрыть смену</button>
+        <button id="closeShiftBtn" class="primary" type="button">Закрыть смену</button>
       </div>
     </div>
 
@@ -186,32 +247,31 @@
     /**********************
      * CONFIG
      **********************/
-    const API_URL = "https://script.google.com/macros/s/AKfycbwdmAzHAQVX9neR75OIukyGZE9upGfoChiN65FNcJurg0lKulI6e0v9t9HdW7wuD1sZ/exec";
-    const API_TOKEN = "BankaBatumi2026Batumi390";
+    const API_URL   = "https://script.google.com/macros/s/AKfycbyMIkxbquEtfNuFOYyiib-vfAEL0u6x-tccPDOqf0UVlxiZj-BF_p4PQc88CXhcsMvE/exec";
+    const API_TOKEN = "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2";
 
     /**********************
-     * Categories (ручные из таблицы)
+     * Categories
      **********************/
     const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
     const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose"];
-
     const SUB_SET = new Set(BOTTLE_SUB.map(x=>x.toLowerCase()));
+
+    /**********************
+     * Corporate
+     **********************/
+    const EMPLOYEES = ["Ви","Виталий","Зура","Джули"];
+    let corporateEmployee = "";
+
+    /**********************
+     * Discounts (%)
+     **********************/
+    let discountPercent = 0;         // customer (cash/card/delivery)
+    let employeeDiscountPercent = 0; // employee (corporate only)
 
     /**********************
      * Helpers
      **********************/
-      function tapNumber(name){
-  const m = String(name||"").match(/кран\s*(\d+)/i);
-  return m ? Number(m[1]) : 9999;
-    }
-      function sortProducts(a,b){
-  // Краны всегда по номеру (Кран 1,2,3...)
-  if (a.mainCat==="Краны" && b.mainCat==="Краны"){
-    return tapNumber(a.name) - tapNumber(b.name);
-  }
-  // Остальное — по имени
-  return a.name.localeCompare(b.name, "ru");
-}
     function money(n){
       const x = Math.round((Number(n)||0)*100)/100;
       return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -224,6 +284,23 @@
     function uuid(){
       return (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+"-"+Math.random().toString(16).slice(2));
     }
+    function parseNum(x){
+      if (x===null || x===undefined) return NaN;
+      return Number(String(x).replace(",", ".").trim());
+    }
+
+    // номер крана для сортировки
+    function tapNumber(name){
+      const m = String(name||"").match(/кран\s*(\d+)/i);
+      return m ? Number(m[1]) : 9999;
+    }
+    function sortProducts(a,b){
+      if (a.mainCat==="Краны" && b.mainCat==="Краны"){
+        return tapNumber(a.name) - tapNumber(b.name);
+      }
+      return a.name.localeCompare(b.name, "ru");
+    }
+
     async function apiPost(body){
       const res = await fetch(`${API_URL}?token=${encodeURIComponent(API_TOKEN)}`, {
         method:"POST",
@@ -241,15 +318,13 @@
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }
-    function parseNum(x){
-      if (x===null || x===undefined) return NaN;
-      return Number(String(x).replace(",", ".").trim());
-    }
 
     /**********************
      * DOM
      **********************/
     const el = {
+      cityName: document.getElementById("cityName"),
+
       search: document.getElementById("search"),
       suggest: document.getElementById("suggest"),
       qtyAdd: document.getElementById("qtyAdd"),
@@ -263,9 +338,18 @@
       syncStatus: document.getElementById("syncStatus"),
       payModeLabel: document.getElementById("payModeLabel"),
 
+      discountLabel: document.getElementById("discountLabel"),
+      discountEmpLabel: document.getElementById("discountEmpLabel"),
+
       cashBtn: document.getElementById("cashBtn"),
       cardBtn: document.getElementById("cardBtn"),
       deliveryBtn: document.getElementById("deliveryBtn"),
+      corpBtn: document.getElementById("corpBtn"),
+
+      discountBtn: document.getElementById("discountBtn"),
+      discountEmpBtn: document.getElementById("discountEmpBtn"),
+      discountClearBtn: document.getElementById("discountClearBtn"),
+
       copyBtn: document.getElementById("copyBtn"),
       clearBtn: document.getElementById("clearBtn"),
       closeShiftBtn: document.getElementById("closeShiftBtn"),
@@ -289,7 +373,7 @@
     let catalog = [];
     let stopSet = new Set();
 
-    let paymentMethod = "cash";
+    let paymentMethod = "cash"; // cash | card | delivery | corporate
     let cart = [];
 
     let suggestItems = [];
@@ -301,33 +385,25 @@
     let stopBottleSub = "IPA/APA";
 
     /**********************
-     * КЛЮЧЕВОЕ ИЗМЕНЕНИЕ:
-     * Категория берётся из p.cat (таблица),
-     * НИКАКИХ угадываний по названию.
+     * Category mapping (ONLY from sheet cat)
      **********************/
     function mapCategoryFromSheet(p){
       const raw = String(p.cat || "").trim();
       const lower = raw.toLowerCase();
 
-      // 1) Если cat = одна из основных категорий
       if (MAIN_CATS.includes(raw) && raw !== "Все") {
         if (raw === "Бутылки/Банки") return { main: "Бутылки/Банки", sub: "Классика" };
         return { main: raw, sub: "" };
       }
 
-      // 2) Если cat = подкатегория бутылок/банок
       if (SUB_SET.has(lower)) {
-        // нормализуем к правильному регистру из списка
         const real = BOTTLE_SUB.find(x => x.toLowerCase() === lower) || raw;
         return { main: "Бутылки/Банки", sub: real };
       }
 
-      // 3) Если в таблице написали "Классика" и т.п. без "Бутылки/Банки" — тоже считаем подкатегорией
-      // (на случай если выпадалка/валидация расширена)
       if (BOTTLE_SUB.includes(raw)) return { main:"Бутылки/Банки", sub: raw };
 
-      // 4) Фолбэк — чтобы не ломалось, если кто-то ввёл кастом
-      // Лучше будет сразу видно, что товар "не там"
+      // fallback (если в таблице написали что-то другое)
       return { main: "Снеки", sub: "" };
     }
 
@@ -354,12 +430,13 @@
       catalog = (state.products || []).map(p => withMapped({
         id: String(p.id),
         name: p.name,
-        cat: p.cat, // <- важно
+        cat: p.cat,
         type: p.type || "unit",
         price: Number(p.price||0),
         deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
         track: p.track || "count"
       }));
+
       stopSet = new Set(state.stopIds || []);
       el.stopCount.textContent = String(stopSet.size);
       el.syncStatus.textContent = "OK";
@@ -378,25 +455,29 @@
     }
 
     /**********************
-     * Payment + prices
+     * Payment / Prices
      **********************/
     function setPayment(method){
       paymentMethod = method;
 
-      el.cashBtn.classList.toggle("primary", method==="cash");
-      el.cashBtn.classList.toggle("ghost", method!=="cash");
-
-      el.cardBtn.classList.toggle("primary", method==="card");
-      el.cardBtn.classList.toggle("ghost", method!=="card");
-
-      el.deliveryBtn.classList.toggle("primary", method==="delivery");
-      el.deliveryBtn.classList.toggle("ghost", method!=="delivery");
-
       const label =
         method==="cash" ? "Наличные" :
         method==="card" ? "Карта" :
-        "Доставка";
+        method==="delivery" ? "Доставка" :
+        "Корпоративная";
       el.payModeLabel.textContent = label;
+
+      // UI active states
+      const setBtn = (btn, on, clsOn="primary")=>{
+        btn.classList.toggle(clsOn, on);
+        btn.classList.toggle("ghost", !on);
+      };
+      setBtn(el.cashBtn, method==="cash");
+      setBtn(el.cardBtn, method==="card");
+      setBtn(el.deliveryBtn, method==="delivery");
+      // corporate у нас зеленым (ok)
+      el.corpBtn.classList.toggle("ok", true);
+      el.corpBtn.classList.toggle("primary", false);
 
       renderCart();
     }
@@ -413,8 +494,27 @@
       return Math.round(unitPriceFor(item) * item.qtyPricing * 100) / 100;
     }
 
-    function total(){
+    function grossTotal(){
       return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
+    }
+
+    function discountAmount(){
+      const g = grossTotal();
+      let pct = (paymentMethod === "corporate") ? employeeDiscountPercent : discountPercent;
+      pct = Number(pct||0);
+      if (!Number.isFinite(pct) || pct < 0) pct = 0;
+      if (pct > 100) pct = 100;
+      const d = g * (pct/100);
+      return Math.round(d*100)/100;
+    }
+
+    function netTotal(){
+      const n = grossTotal() - discountAmount();
+      return Math.round(Math.max(0, n)*100)/100;
+    }
+
+    function payableTotal(){
+      return (paymentMethod === "corporate") ? 0 : netTotal();
     }
 
     /**********************
@@ -538,7 +638,7 @@
     function renderCart(){
       el.cartBody.innerHTML = cart.map((it, idx)=>{
         const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
-        const sum = lineSum(it);
+        const sum = Math.round(unitPriceFor(it) * it.qtyPricing * 100)/100;
         const showPrice = unitPriceFor(it);
 
         return `<tr>
@@ -561,7 +661,9 @@
       }).join("");
 
       el.itemsCount.textContent = String(cart.length);
-      el.grandTotal.textContent = money(total());
+      el.discountLabel.textContent = `${Math.round((discountPercent||0)*100)/100}%`;
+      el.discountEmpLabel.textContent = `${Math.round((employeeDiscountPercent||0)*100)/100}%`;
+      el.grandTotal.textContent = money(payableTotal());
     }
 
     /**********************
@@ -670,7 +772,7 @@
 
     function renderQuick(){
       let pool = availableFiltered().slice();
-        pool.sort(sortProducts);
+      pool.sort(sortProducts);
       pool = pool.slice(0, 24);
 
       el.quickGrid.innerHTML = pool.map(p=>{
@@ -708,6 +810,38 @@
     }
 
     /**********************
+     * Discounts UI
+     **********************/
+    function promptPercent(title, current){
+      const ans = prompt(title, String(current ?? 0));
+      if (ans === null) return null;
+      let v = parseNum(ans);
+      if (!Number.isFinite(v) || v < 0) v = 0;
+      if (v > 100) v = 100;
+      return Math.round(v*100)/100;
+    }
+
+    function setCustomerDiscount(){
+      const v = promptPercent("Скидка покупателю (% 0–100):", discountPercent);
+      if (v === null) return;
+      discountPercent = v;
+      renderCart();
+    }
+
+    function setEmployeeDiscount(){
+      const v = promptPercent("Скидка сотруднику (% 0–100):", employeeDiscountPercent);
+      if (v === null) return;
+      employeeDiscountPercent = v;
+      renderCart();
+    }
+
+    function clearDiscounts(){
+      discountPercent = 0;
+      employeeDiscountPercent = 0;
+      renderCart();
+    }
+
+    /**********************
      * Copy / clear
      **********************/
     async function copyReceipt(){
@@ -715,9 +849,17 @@
         const suffix = it.type==="per_liter" ? " /л" : (it.type==="per_kg" ? " /кг" : "");
         const qtyTxt = (it.displayUnit==="г") ? `${it.displayQty} г` : `${it.displayQty} ${it.displayUnit}`;
         const unit = unitPriceFor(it);
-        return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(lineSum(it))} GEL`;
+        return `${it.name} — ${qtyTxt} × ${money(unit)}${suffix} = ${money(Math.round(unit*it.qtyPricing*100)/100)} GEL`;
       });
-      lines.push(`ИТОГО: ${money(total())} GEL`);
+
+      const g = grossTotal();
+      const d = discountAmount();
+      const n = netTotal();
+
+      lines.push(`СУММА: ${money(g)} GEL`);
+      if (d>0) lines.push(`СКИДКА: -${money(d)} GEL`);
+      lines.push(`ИТОГО: ${money((paymentMethod==="corporate")?0:n)} GEL`);
+      if (paymentMethod==="corporate") lines.push(`КОРПОРАТИВ: ${corporateEmployee} — ${money(n)} GEL`);
 
       const text = lines.join("\n");
       try{
@@ -729,45 +871,87 @@
     }
 
     /**********************
-     * Pay (минимально: cash/card/delivery)
+     * Keg updated prompt handling
+     **********************/
+    function buildKegSwitchesFromServer(res){
+      // Если сервер сообщил, что кега обновлена — спросим сколько налили из новой
+      const switches = {};
+      if (!res || !res.kegUpdated || !res.kegUpdated.length) return switches;
+
+      for (const k of res.kegUpdated){
+        const ans = prompt(`${k.name} — кега обновлена.\nСколько литров налито из новой кеги?`, "0");
+        if (ans === null) continue;
+        const v = parseNum(ans);
+        if (Number.isFinite(v) && v > 0) switches[k.id] = Math.round(v*10)/10;
+      }
+      return switches;
+    }
+
+    /**********************
+     * Pay
      **********************/
     async function pay(){
+      if (!cart.length){
+        alert("Чек пустой.");
+        return;
+      }
+
+      const items = cart.map(it => ({
+        productId: it.productId,
+        qtyBase: it.trackQty,
+        displayUnit: it.displayUnit,
+        unitPriceUsed: unitPriceFor(it)
+      }));
+
+      const receiptId = uuid();
+      const gross = grossTotal();
+      const disc = discountAmount();
+      const net = netTotal();
+
+      // первая попытка без kegSwitches
+      let payload = {
+        path:"sale",
+        receiptId,
+        paymentMethod,
+        employee: (paymentMethod==="corporate") ? corporateEmployee : "",
+        grossTotal: gross,
+        discountAmount: disc,
+        netTotal: net,
+        items,
+        kegSwitches: {}
+      };
+
       try{
-        if (!cart.length){
-          alert("Чек пустой.");
-          return;
+        el.syncStatus.textContent = "…";
+        let res = await apiPost(payload);
+
+        // Если были обновления кег — перешлём одну доп.операцию с kegSwitches
+        // (проще: повторяем sale с тем же receiptId НЕ будем — вместо этого сразу включаем kegSwitches)
+        // Поэтому делаем так: если пришёл kegUpdated — сразу делаем второй POST с тем же receiptId и kegSwitches
+        if (res.kegUpdated && res.kegUpdated.length){
+          const switches = buildKegSwitchesFromServer(res);
+          if (Object.keys(switches).length){
+            payload.kegSwitches = switches;
+            res = await apiPost(payload);
+          }
         }
 
-        const items = cart.map(it => ({
-          productId: it.productId,
-          qtyBase: it.trackQty,
-          displayUnit: it.displayUnit,
-          unitPriceUsed: unitPriceFor(it)
-        }));
+        // low warnings
+        if (res.lowWarnings && res.lowWarnings.length){
+          const lines = res.lowWarnings.map(x => `${x.name} осталось ${x.remaining} ${x.unit}. Отключите этот товар в доставке`);
+          alert(lines.join("\n"));
+        }
 
-        const receiptId = uuid();
-        const net = total();
-
-        const payload = {
-          path:"sale",
-          receiptId,
-          paymentMethod,
-          employee: "",
-          grossTotal: net,
-          discountAmount: 0,
-          netTotal: net,
-          items,
-          kegSwitches: {}
-        };
-
-        el.syncStatus.textContent = "…";
-        const res = await apiPost(payload);
         applyStateToUI(res.state);
+
+        const msg = (paymentMethod==="corporate")
+          ? `Корпоративный — ${corporateEmployee}: ${money(net)} GEL`
+          : `Пробито ✅ Сумма: ${money(net)} GEL`;
 
         cart = [];
         renderCart();
+        alert(msg);
 
-        alert(`Пробито ✅ Сумма: ${money(net)} GEL`);
       }catch(err){
         el.syncStatus.textContent = "ERR";
         alert("Ошибка при пробитии: " + err);
@@ -781,13 +965,30 @@
           `Смена за ${data.dayKey}\n\n` +
           `Наличные: ${money(data.cash)} GEL\n` +
           `Карта: ${money(data.card)} GEL\n` +
-          `Доставка: ${money(data.delivery)} GEL\n\n` +
+          `Доставка: ${money(data.delivery)} GEL\n` +
+          `Корпоративный: ${money(data.corporate)} GEL\n\n` +
           `ИТОГО: ${money(data.total)} GEL\n` +
           `Чеков: ${data.count}`
         );
       }catch(err){
         alert("Ошибка закрытия смены: " + err);
       }
+    }
+
+    async function corporatePayFlow(){
+      if (!cart.length){
+        alert("Чек пустой.");
+        return;
+      }
+      const name = prompt(`Кто взял? Введите имя:\n${EMPLOYEES.join(", ")}`, corporateEmployee || EMPLOYEES[0]);
+      if (name === null) return;
+      corporateEmployee = String(name).trim();
+      if (!corporateEmployee){
+        alert("Нужно имя сотрудника.");
+        return;
+      }
+      setPayment("corporate");
+      await pay();
     }
 
     /**********************
@@ -803,6 +1004,11 @@
     /**********************
      * Events
      **********************/
+    el.cityName.addEventListener("click", ()=>{
+      const v = prompt("Название города:", el.cityName.textContent.trim());
+      if (v !== null && String(v).trim()) el.cityName.textContent = String(v).trim();
+    });
+
     el.search.addEventListener("input", ()=>{
       const items = suggest(el.search.value);
       showSuggest(items);
@@ -880,9 +1086,16 @@
       setItemQtyFromInput(idx, inp.value);
     });
 
-    el.cashBtn.addEventListener("click", ()=>{ setPayment("cash"); pay(); });
-    el.cardBtn.addEventListener("click", ()=>{ setPayment("card"); pay(); });
-    el.deliveryBtn.addEventListener("click", ()=>{ setPayment("delivery"); pay(); });
+    // payment buttons = pay now
+    el.cashBtn.addEventListener("click", async ()=>{ setPayment("cash"); await pay(); });
+    el.cardBtn.addEventListener("click", async ()=>{ setPayment("card"); await pay(); });
+    el.deliveryBtn.addEventListener("click", async ()=>{ setPayment("delivery"); await pay(); });
+    el.corpBtn.addEventListener("click", corporatePayFlow);
+
+    // discounts
+    el.discountBtn.addEventListener("click", setCustomerDiscount);
+    el.discountEmpBtn.addEventListener("click", setEmployeeDiscount);
+    el.discountClearBtn.addEventListener("click", clearDiscounts);
 
     el.copyBtn.addEventListener("click", copyReceipt);
     el.clearBtn.addEventListener("click", ()=>{
@@ -941,6 +1154,38 @@
     /**********************
      * Init
      **********************/
+    function renderMenuCats(){
+      el.catBar.innerHTML = MAIN_CATS.map(c =>
+        `<button class="catBtn ${c===catFilter?"active":""}" data-cat="${esc(c)}" type="button">${esc(c)}</button>`
+      ).join("");
+
+      if (catFilter === "Бутылки/Банки"){
+        el.subBar.style.display = "flex";
+        el.subBar.innerHTML = BOTTLE_SUB.map(s =>
+          `<button class="catBtn ${s===bottleSub?"active":""}" data-sub="${esc(s)}" type="button">${esc(s)}</button>`
+        ).join("");
+      } else {
+        el.subBar.style.display = "none";
+        el.subBar.innerHTML = "";
+      }
+    }
+
+    function renderStopCats(){
+      el.stopCatBar.innerHTML = MAIN_CATS.map(c =>
+        `<button class="catBtn ${c===stopCatFilter?"active":""}" data-stopcat="${esc(c)}" type="button">${esc(c)}</button>`
+      ).join("");
+
+      if (stopCatFilter === "Бутылки/Банки"){
+        el.stopSubBar.style.display = "flex";
+        el.stopSubBar.innerHTML = BOTTLE_SUB.map(s =>
+          `<button class="catBtn ${s===stopBottleSub?"active":""}" data-stopsub="${esc(s)}" type="button">${esc(s)}</button>`
+        ).join("");
+      } else {
+        el.stopSubBar.style.display = "none";
+        el.stopSubBar.innerHTML = "";
+      }
+    }
+
     (async ()=>{
       try{
         setPayment("cash");
