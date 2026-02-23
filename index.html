@@ -6,9 +6,8 @@
   <title>BANKA POS</title>
   <style>
     :root{
-      /* Banka palette */
-      --paper:#f2dc85;     /* warm yellow */
-      --paper2:#f7e6a8;    /* lighter */
+      --paper:#f2dc85;
+      --paper2:#f7e6a8;
       --ink:#111111;
       --muted:#2b2b2b;
       --line:rgba(0,0,0,.14);
@@ -16,7 +15,7 @@
       --card:rgba(255,255,255,.35);
       --card2:rgba(255,255,255,.55);
 
-      --accent:#f4b400;    /* beer gold */
+      --accent:#f4b400;
       --accent2:#ffcc33;
       --danger:#d83a3a;
       --ok:#0aa383;
@@ -400,7 +399,7 @@
     /**********************
      * CONFIG
      **********************/
-    const API_URL   = "https://script.google.com/macros/s/AKfycbxvKV5TDgzDP2s9Ub4HhIkf3vExfTGJjnXHjsAnGd0w8NvZIhs2UQ77EV8wzQdtDbxn/exec";
+    const API_URL   = https://script.google.com/macros/s/AKfycbxYufiI7u_WJ4bTFAC7emCnpx_TAivGNCzeMspJfPNXD9BTK5glyuB6HMc2DhqXUvRm/exec";
     const API_TOKEN = "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2";
 
     const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
@@ -601,8 +600,10 @@
     function isAvailable(p){ return !stopSet.has(p.id); }
     function findById(id){ return catalog.find(p=>p.id===id) || null; }
 
+    // ✅ ВАЖНО: здесь добавили авто-стоп по кегам (remaining<=0 && spares<=0)
     function applyStateToUI(newState){
       state = newState;
+
       catalog = (state.products || []).map(p => withMapped({
         id: String(p.id),
         name: p.name,
@@ -612,7 +613,20 @@
         deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
         track: p.track || "count"
       }));
+
       stopSet = new Set(state.stopIds || []);
+
+      // Fallback на фронте: если кеги закончились и запаса нет — стоп
+      // (даже если вдруг backend по ошибке не добавил)
+      for (const p of catalog){
+        if (String(p.track).toLowerCase() !== "keg") continue;
+        const k = (state && state.kegs && state.kegs[p.id]) ? state.kegs[p.id] : null;
+        const remaining = k ? Number(k.remainingL || 0) : 0;
+        const spares = k ? Number(k.spares || 0) : 0;
+        if (remaining <= 0 && spares <= 0) stopSet.add(p.id);
+        else stopSet.delete(p.id); // если пополнили вручную — уходит со стопа
+      }
+
       el.stopCount.textContent = String(stopSet.size);
       el.syncStatus.textContent = "OK";
 
@@ -922,9 +936,9 @@
 
       el.stopList.innerHTML = list.map(p=>{
         let hint = "";
-        if (p.track === "keg"){
+        if (String(p.track).toLowerCase() === "keg"){
           const k = (state && state.kegs && state.kegs[p.id]) || null;
-          hint = k ? `Кега: ${k.remainingL}л, запас: ${k.spares}` : "Нет строки в Kegs";
+          hint = k ? `Кега: ${money(k.remainingL)}л, запас: ${k.spares}` : "Нет строки в Kegs";
         } else {
           const q = (state && state.stock && (p.id in state.stock)) ? state.stock[p.id] : 0;
           hint = `Остаток: ${q}`;
@@ -1031,6 +1045,7 @@
         el.syncStatus.textContent = "…";
         let res = await apiPost(payload);
 
+        // (можно оставить — backend защищён от двойного списания по receiptId)
         if (res.kegUpdated && res.kegUpdated.length){
           const switches = buildKegSwitchesFromServer(res);
           if (Object.keys(switches).length){
@@ -1132,7 +1147,6 @@
         return `<tr>${cols.map(c=>`<td>${esc(r[c] ?? "")}</td>`).join("")}</tr>`;
       }).join("");
 
-      // apply current search filter
       applyAdminSearch();
     }
 
@@ -1278,7 +1292,6 @@
         };
       });
 
-      // сорт: краны по номеру, остальное по названию
       rows.sort((a,b)=>{
         const aIsTap = normalize(a["Категория"])==="краны";
         const bIsTap = normalize(b["Категория"])==="краны";
@@ -1327,7 +1340,6 @@
       }
     });
 
-    // POS tabs menu/stop
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click", ()=>setTab(b.dataset.tab));
     });
@@ -1427,7 +1439,6 @@
     });
 
     el.closeShiftBtn.addEventListener("click", closeShift);
-
     el.refreshBtn.addEventListener("click", ()=>refreshState().catch(err=>alert("Ошибка: "+err)));
 
     el.catBar.addEventListener("click", (e)=>{
@@ -1491,7 +1502,6 @@
       if (!ok) return;
       el.adminStatus.textContent = "OK";
       showAdmin(true);
-      // по умолчанию: итоги дня
       await adminDay().catch(()=>{});
     });
 
