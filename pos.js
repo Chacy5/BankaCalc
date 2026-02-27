@@ -1,6 +1,6 @@
 /**********************
  * BANKA POS (frontend)
- * Root files version: pos.js
+ * Root files version: pos.js (full)
  * Requires: window.CITY_CONFIG
  **********************/
 (function () {
@@ -23,6 +23,7 @@
     search: document.getElementById("search"),
     suggest: document.getElementById("suggest"),
     qtyAdd: document.getElementById("qtyAdd"),
+    qtyAddWrap: document.getElementById("qtyAddWrap"),
     qtyMinus: document.getElementById("qtyMinus"),
     qtyPlus: document.getElementById("qtyPlus"),
     addBtn: document.getElementById("addBtn"),
@@ -82,6 +83,13 @@
 
   if (el.cityTitle) el.cityTitle.textContent = String(CFG.cityName || "Батуми");
   if (CFG.cityKey) localStorage.setItem("banka_city", String(CFG.cityKey));
+
+  // ---- constants / filters ----
+  // Главные категории UI
+  const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Тара","Рыба","Снеки","Мясо","Чипсы"];
+
+  // Подкатегории (они у тебя лежат в колонке Products.cat)
+  const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose/Cider"];
 
   // ---- helpers ----
   function money(n){
@@ -208,36 +216,29 @@
   }
 
   // ---- Category canonicalization ----
-  // Требования:
-  // 1) "Тара" отдельной вкладкой
-  // 2) "Медовухи/Безалкогольные/..." — подкатегории ТОЛЬКО для "Бутылки/Банки"
+  // ВАЖНО: В твоей таблице Products.cat для бутылок/банок = подкатегория (IPA/APA, Темное, ...)
+  // Поэтому мы делаем виртуальную "главную" категорию "Бутылки/Банки", а подкатегорию кладём в p.subcat
   function canonicalCat(raw) {
-    const s = normalize(raw);
+    const s = String(raw || "").trim();
 
-    if (s.includes("кран")) return "Краны";
+    // если в таблице cat = одна из подкатегорий бутылок/банок
+    if (BOTTLE_SUB.includes(s)) return "Бутылки/Банки";
 
-    // Тара отдельно
-    if (s.includes("тара") || s.includes("стекло") || s.includes("пэт") || s.includes("бутылка") && s.includes("пуст")) {
+    const n = normalize(s);
+
+    if (n.includes("кран")) return "Краны";
+
+    // Тара отдельно (ориентируемся только на cat из таблицы)
+    if (n.includes("тара") || n.includes("пэт") || n.includes("круж") || n.includes("стак") || (n.includes("бутылка") && n.includes("пуст")))
       return "Тара";
-    }
 
-    // Банки/бутылки (напитки) — отдельная витрина
-    if (s.includes("банк") || s.includes("бутыл") || s.includes("буты") || s.includes("can") || s.includes("bottle")) {
-      return "Бутылки/Банки";
-    }
+    if (n.includes("рыб")) return "Рыба";
+    if (n.includes("снек")) return "Снеки";
+    if (n.includes("мяс")) return "Мясо";
+    if (n.includes("чип")) return "Чипсы";
 
-    if (s.includes("рыб")) return "Рыба";
-    if (s.includes("снек")) return "Снеки";
-    if (s.includes("мяс")) return "Мясо";
-    if (s.includes("чип")) return "Чипсы";
-
-    const r = String(raw || "").trim();
-    return r || "Другое";
+    return s || "Другое";
   }
-
-  // ---- filters ----
-  const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Тара","Рыба","Снеки","Мясо","Чипсы"];
-  const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose/Cider"];
 
   // ---- state ----
   let state = null;
@@ -259,11 +260,17 @@
   let activeSuggestIndex = -1;
 
   function normalizeProduct(p){
-    const cat = canonicalCat(p.cat);
+    const rawCat = String(p.cat || "").trim();
+    const cat = canonicalCat(rawCat);
+
+    // subcat нужен ТОЛЬКО для "Бутылки/Банки"
+    const subcat = (cat === "Бутылки/Банки" && BOTTLE_SUB.includes(rawCat)) ? rawCat : "";
+
     return {
       id: normalize(p.id),
       name: String(p.name||"").trim(),
       cat,
+      subcat,
       type: p.type || "unit",
       price: Number(p.price||0),
       deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
@@ -308,7 +315,7 @@
     el.suggest.innerHTML = suggestItems.map((p,i)=>(
       `<div class="suggestItem" data-i="${i}">
         <div><b>${esc(p.name)}</b></div>
-        <small>${esc(p.cat)} • ${money(p.price)} GEL</small>
+        <small>${esc(p.cat)}${p.subcat ? " • " + esc(p.subcat) : ""} • ${money(p.price)} GEL</small>
       </div>`
     )).join("");
 
@@ -378,6 +385,7 @@
         productId: pid,
         name: p.name,
         cat: p.cat,
+        subcat: p.subcat,
         type: p.type,
         track: p.track,
         price: p.price,
@@ -439,7 +447,7 @@
       return `<div class="trow" data-i="${idx}">
         <div>
           <div style="font-weight:850">${esc(it.name)}</div>
-          <div style="font-size:12px;opacity:.7">${esc(it.cat)} • ${paymentMethod==="delivery" ? "доставка" : "обычно"}</div>
+          <div style="font-size:12px;opacity:.7">${esc(it.cat)}${it.subcat ? " • " + esc(it.subcat) : ""} • ${paymentMethod==="delivery" ? "доставка" : "обычно"}</div>
         </div>
         <div class="right">
           <input class="qtyInp" value="${esc(String(it.qtyBase))}" inputmode="decimal" />
@@ -481,7 +489,6 @@
       ch.addEventListener("click", ()=>{
         catFilter = ch.dataset.c;
 
-        // если ушли из бутылок — подкатегории не влияют
         renderSubcats();
         renderQuickGrid();
       });
@@ -513,12 +520,12 @@
   function passesFilters(p){
     if (catFilter !== "Все" && p.cat !== catFilter) return false;
 
-    // Подкатегории применяем ТОЛЬКО внутри выбранной категории "Бутылки/Банки"
+    // Подкатегории применяем ТОЛЬКО для "Бутылки/Банки" и сравниваем по p.subcat (это cat из таблицы)
     if (catFilter === "Бутылки/Банки"){
-      const n = normalize(p.name);
-      const hasAny = BOTTLE_SUB.some(sub => n.includes(normalize(sub)));
-      if (hasAny && !n.includes(normalize(bottleSub))) return false;
+      if (!p.subcat) return false;
+      if (p.subcat !== bottleSub) return false;
     }
+
     return true;
   }
 
@@ -530,7 +537,7 @@
       const price = (paymentMethod==="delivery" && p.deliveryPrice!=="") ? p.deliveryPrice : p.price;
       return `<div class="quickBtn ${isStop?'stop':''}" data-id="${esc(p.id)}">
         <div class="quickName">${esc(p.name)}</div>
-        <div class="quickMeta">${esc(p.cat)} • ${money(price)} GEL</div>
+        <div class="quickMeta">${esc(p.cat)}${p.subcat ? " • " + esc(p.subcat) : ""} • ${money(price)} GEL</div>
       </div>`;
     }).join("");
 
