@@ -77,7 +77,6 @@
     adminTbody: document.getElementById("adminTbody"),
 
     loadingOverlay: document.getElementById("loadingOverlay"),
-
     quickGrid: document.getElementById("quickGrid"),
   };
 
@@ -145,12 +144,18 @@
   // ---- API ----
   function diagnoseFailedFetch(){
     return [
-      "Не удалось подключиться к Google Apps Script (Failed to fetch). Проверь:",
-      "1) В batumi.html CITY_CONFIG.apiUrl — это именно Web App URL и он заканчивается на /exec",
+      "Не удалось подключиться к Google Apps Script (сетевой сбой). Проверь:",
+      "1) В batumi.html CITY_CONFIG.apiUrl — это Web App URL и он заканчивается на /exec",
       "2) Apps Script -> Deploy -> Web app: доступ = Anyone (или Anyone with link), Execute as = Me",
       "3) Открой вручную в браузере:",
       "   <apiUrl>?path=state&token=<token> — должен вернуться JSON ok:true",
     ].join("\n");
+  }
+
+  function isNetworkFail(err){
+    const s = String(err || "");
+    // Chrome: Failed to fetch, Firefox: Load failed
+    return s.includes("Failed to fetch") || s.includes("Load failed") || s.includes("NetworkError");
   }
 
   async function apiGet(path, params={}){
@@ -161,25 +166,29 @@
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }catch(err){
-      // Failed to fetch
-      if (String(err).includes("Failed to fetch")) throw new Error(diagnoseFailedFetch());
+      if (isNetworkFail(err)) throw new Error(diagnoseFailedFetch());
       throw err;
     }
   }
 
   async function apiPost(body){
     const qs = new URLSearchParams({ token: API_TOKEN });
+
+    // ВАЖНО: text/plain вместо application/json → меньше CORS/OPTIONS проблем на GitHub Pages
+    // Code.gs всё равно читает e.postData.contents и JSON.parse — это работает.
     try{
       const res = await fetch(`${API_URL}?${qs.toString()}`,{
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(body)
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify(body),
+        credentials: "omit",
       });
+
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
     }catch(err){
-      if (String(err).includes("Failed to fetch")) throw new Error(diagnoseFailedFetch());
+      if (isNetworkFail(err)) throw new Error(diagnoseFailedFetch());
       throw err;
     }
   }
@@ -193,18 +202,29 @@
       if (!data.ok) throw new Error(data.error || "Admin API error");
       return data;
     }catch(err){
-      if (String(err).includes("Failed to fetch")) throw new Error(diagnoseFailedFetch());
+      if (isNetworkFail(err)) throw new Error(diagnoseFailedFetch());
       throw err;
     }
   }
 
-  // ---- Category canonicalization (FIX for bottle subcategories) ----
+  // ---- Category canonicalization ----
+  // Требования:
+  // 1) "Тара" отдельной вкладкой
+  // 2) "Медовухи/Безалкогольные/..." — подкатегории ТОЛЬКО для "Бутылки/Банки"
   function canonicalCat(raw) {
     const s = normalize(raw);
+
     if (s.includes("кран")) return "Краны";
 
-    // банки/бутылки/тара -> единая витрина
-    if (s.includes("бан") || s.includes("бутыл") || s.includes("тара")) return "Бутылки/Банки";
+    // Тара отдельно
+    if (s.includes("тара") || s.includes("стекло") || s.includes("пэт") || s.includes("бутылка") && s.includes("пуст")) {
+      return "Тара";
+    }
+
+    // Банки/бутылки (напитки) — отдельная витрина
+    if (s.includes("банк") || s.includes("бутыл") || s.includes("буты") || s.includes("can") || s.includes("bottle")) {
+      return "Бутылки/Банки";
+    }
 
     if (s.includes("рыб")) return "Рыба";
     if (s.includes("снек")) return "Снеки";
@@ -216,7 +236,7 @@
   }
 
   // ---- filters ----
-  const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
+  const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Тара","Рыба","Снеки","Мясо","Чипсы"];
   const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose/Cider"];
 
   // ---- state ----
@@ -460,6 +480,9 @@
     el.catBar.querySelectorAll(".chip").forEach(ch=>{
       ch.addEventListener("click", ()=>{
         catFilter = ch.dataset.c;
+
+        // если ушли из бутылок — подкатегории не влияют
+        renderSubcats();
         renderQuickGrid();
       });
     });
@@ -467,6 +490,15 @@
 
   function renderSubcats(){
     if (!el.subBar) return;
+
+    // Подкатегории показываем ТОЛЬКО когда выбраны "Бутылки/Банки"
+    if (catFilter !== "Бутылки/Банки"){
+      el.subBar.innerHTML = "";
+      el.subBar.style.display = "none";
+      return;
+    }
+
+    el.subBar.style.display = "";
     el.subBar.innerHTML = BOTTLE_SUB.map(c=>(
       `<div class="chip ${c===bottleSub?'active':''}" data-c="${esc(c)}">${esc(c)}</div>`
     )).join("");
@@ -478,18 +510,12 @@
     });
   }
 
-  function isBottleCategory(cat){
-    return normalize(cat) === normalize("Бутылки/Банки");
-  }
-
   function passesFilters(p){
     if (catFilter !== "Все" && p.cat !== catFilter) return false;
 
-    // подкатегории работают, когда выбрана витрина Бутылки/Банки ИЛИ сам товар из неё
-    if (catFilter === "Бутылки/Банки" || isBottleCategory(p.cat)) {
+    // Подкатегории применяем ТОЛЬКО внутри выбранной категории "Бутылки/Банки"
+    if (catFilter === "Бутылки/Банки"){
       const n = normalize(p.name);
-      // фильтруем только если по названию реально видно сабкласс
-      // иначе оставляем (чтобы не исчезали “непонятные” позиции)
       const hasAny = BOTTLE_SUB.some(sub => n.includes(normalize(sub)));
       if (hasAny && !n.includes(normalize(bottleSub))) return false;
     }
@@ -660,7 +686,7 @@
         `Наличные: ${money(data.cash)} GEL\n` +
         `Карта: ${money(data.card)} GEL\n` +
         `Доставка: ${money(data.delivery)} GEL\n` +
-        `Корпоративный: ${money(data.corporate)} GEL\n\n` +
+        `Корпоративная: ${money(data.corporate)} GEL\n\n` +
         `ИТОГО: ${money(data.total)} GEL\n` +
         `Чеков: ${data.count}`
       );
@@ -686,7 +712,7 @@
       if (!pass){
         const p = prompt("Пароль админа:", "");
         if (p===null) { showAdmin(false); return; }
-        sessionStorage.setItem("banka_admin_password", String(p).trim()); // FIX trim
+        sessionStorage.setItem("banka_admin_password", String(p).trim());
       }
       showAdmin(true);
       return;
