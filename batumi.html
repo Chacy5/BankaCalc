@@ -72,7 +72,7 @@
             </div>
 
             <div style="flex:1; min-width:260px">
-              <div class="label">Подкатегории (бутылки/банки)</div>
+              <div class="label">Подкатегории (Бутылки/Банки)</div>
               <div id="subBar" class="chips"></div>
             </div>
           </div>
@@ -140,37 +140,10 @@
           </div>
 
           <div class="hint" style="margin-top:10px">
-            Важно: после пробития сбрасываются чек + фильтры + скидки + режим оплаты.
+            После пробития сбрасываются чек + фильтры + скидки + режим оплаты.
           </div>
         </div>
       </div>
-
-      <!-- STOP TAB -->
-      <div id="stopTab" class="card" style="display:none; margin-top:12px">
-        <div class="row" style="justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
-          <div>
-            <div class="label">Стоп-лист</div>
-            <div class="hint">Всего на стопе: <b id="stopCount">0</b></div>
-          </div>
-          <div class="row" style="gap:10px; flex-wrap:wrap; align-items:flex-end">
-            <div>
-              <div class="label">Категории</div>
-              <div id="stopCatBar" class="chips"></div>
-            </div>
-            <div>
-              <div class="label">Подкатегории</div>
-              <div id="stopSubBar" class="chips"></div>
-            </div>
-            <button class="btn ghost" id="menuTabBtn">Вернуться в меню</button>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-        <div id="stopList" class="stopList"></div>
-      </div>
-
-      <!-- MENU TAB (same card already) -->
-      <div id="menuTab" style="display:none"></div>
     </div>
 
     <!-- ADMIN -->
@@ -240,11 +213,11 @@
   </div>
 
   <script>
-    // CONFIG Батуми (твой рабочий веб-апп)
+    // ⚠️ ПОДСТАВЬ СЮДА СВОЙ РЕАЛЬНЫЙ WEB APP URL (Deploy -> Web app) и token
     window.CITY_CONFIG = {
       cityKey: "batumi",
       cityName: "Батуми",
-      apiUrl: "https://script.google.com/macros/s/AKfycbwyq9ZZLVcz60YzZRPPOobfdS9agEsr9gW2U-Uyd3X0Vg8_WwkAh-gvB5XQnaBML0rl/exec",
+      apiUrl: "https://script.google.com/macros/s/AKfycbwyq9ZZLVcz60YzZRPPOobfdS9agEsr9gW2U-Uyd3X0Vg8_WwkAh-gvB5XQnaBML0rl/exec",   // например: https://script.google.com/macros/s/XXXX/exec
       apiToken: "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2",
       employees: ["Ви","Виталий","Зура","Джули"]
     };
