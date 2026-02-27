@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BANKA POS — Батуми</title>
+  <link rel="stylesheet" href="./assets/styles.css" />
+</head>
+<body>
+  <!-- LOADING OVERLAY -->
+  <div id="loadingOverlay" class="loadingOverlay" style="display:none">
+    <div class="spinner"></div>
+    <div class="loadingText">Пробиваю чек…</div>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logoBox">B</div>
+      <div>
+        <div class="brandTitle">BANKA POS</div>
+        <div class="brandSub">
+          <span id="cityTitle">Батуми</span>
+          <span class="dot">•</span>
+          <span class="muted">Sync:</span> <span id="syncStatus" class="pill">—</span>
+          <span class="dot">•</span>
+          <span class="muted">Оплата:</span> <span id="payModeLabel" class="pill">cash</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="topActions">
+      <a class="btn ghost" href="./index.html" title="Сменить город">Город</a>
+      <button id="refreshBtn" class="btn ghost" title="Обновить состояние">Обновить</button>
+      <button id="tabPos" class="btn tab active" data-tab="pos">Касса</button>
+      <button id="tabAdmin" class="btn tab" data-tab="admin">Администрирование</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- POS -->
+    <div id="posWrap">
+      <div class="grid2">
+        <!-- LEFT: CATALOG -->
+        <div class="card">
+          <div class="row" style="gap:10px; flex-wrap:wrap">
+            <div style="flex:1; min-width:240px">
+              <div class="label">Поиск / добавление</div>
+              <input id="search" class="input" placeholder="Начни писать название…" autocomplete="off" />
+              <div id="suggest" class="suggest" style="display:none"></div>
+            </div>
+
+            <div class="qtyBox">
+              <div class="label">Кол-во</div>
+              <div class="row" style="gap:8px">
+                <button id="qtyMinus" class="btn ghost" style="width:44px">−</button>
+                <input id="qtyAdd" class="input" style="width:86px; text-align:center" value="1" />
+                <button id="qtyPlus" class="btn ghost" style="width:44px">+</button>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:flex-end">
+              <button id="addBtn" class="btn primary" style="height:44px">Добавить</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row" style="gap:10px; flex-wrap:wrap; align-items:flex-end">
+            <div style="flex:1; min-width:220px">
+              <div class="label">Категории</div>
+              <div id="catBar" class="chips"></div>
+            </div>
+
+            <div style="flex:1; min-width:260px">
+              <div class="label">Подкатегории (бутылки/банки)</div>
+              <div id="subBar" class="chips"></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row" style="justify-content:space-between; align-items:center">
+            <div class="label">Быстрое меню</div>
+            <div class="hint">Товары на стопе будут серыми</div>
+          </div>
+          <div id="quickGrid" class="quickGrid"></div>
+        </div>
+
+        <!-- RIGHT: CART -->
+        <div class="card">
+          <div class="row" style="justify-content:space-between; align-items:center; gap:10px">
+            <div>
+              <div class="label">Чек</div>
+              <div class="hint"><span id="itemsCount">0</span> позиций</div>
+            </div>
+            <div class="totalBox">
+              <div class="label">Итого</div>
+              <div id="grandTotal" class="total">0</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="table">
+            <div class="thead">
+              <div>Товар</div>
+              <div class="right">Кол-во</div>
+              <div class="right">Цена</div>
+              <div class="right">Сумма</div>
+              <div></div>
+            </div>
+            <div id="cartBody" class="tbody"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center">
+            <div class="pillRow">
+              <span class="pill">Скидка: <b id="discountLabel">0%</b></span>
+              <span class="pill" id="empDiscountPill" style="display:none">Персонал: <b id="discountEmpLabel">0%</b></span>
+            </div>
+
+            <div class="row" style="margin-left:auto; gap:8px; flex-wrap:wrap">
+              <button id="discountBtn" class="btn ghost">Скидка</button>
+              <button id="discountClearBtn" class="btn ghost">Сброс скидок</button>
+              <button id="copyBtn" class="btn ghost">Копировать</button>
+              <button id="clearBtn" class="btn danger">Очистить</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row payRow" style="gap:10px; flex-wrap:wrap">
+            <button id="cashBtn" class="btn pay">Наличные</button>
+            <button id="cardBtn" class="btn pay">Карта</button>
+            <button id="deliveryBtn" class="btn pay">Доставка</button>
+            <button id="corpBtn" class="btn pay">Корпоративная</button>
+
+            <button id="closeShiftBtn" class="btn ghost" style="margin-left:auto">Закрытие смены</button>
+          </div>
+
+          <div class="hint" style="margin-top:10px">
+            Важно: после пробития сбрасываются чек + фильтры + скидки + режим оплаты.
+          </div>
+        </div>
+      </div>
+
+      <!-- STOP TAB -->
+      <div id="stopTab" class="card" style="display:none; margin-top:12px">
+        <div class="row" style="justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
+          <div>
+            <div class="label">Стоп-лист</div>
+            <div class="hint">Всего на стопе: <b id="stopCount">0</b></div>
+          </div>
+          <div class="row" style="gap:10px; flex-wrap:wrap; align-items:flex-end">
+            <div>
+              <div class="label">Категории</div>
+              <div id="stopCatBar" class="chips"></div>
+            </div>
+            <div>
+              <div class="label">Подкатегории</div>
+              <div id="stopSubBar" class="chips"></div>
+            </div>
+            <button class="btn ghost" id="menuTabBtn">Вернуться в меню</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div id="stopList" class="stopList"></div>
+      </div>
+
+      <!-- MENU TAB (same card already) -->
+      <div id="menuTab" style="display:none"></div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="adminPanel" style="display:none">
+      <div class="card">
+        <div class="row" style="justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap">
+          <div>
+            <div class="label">Администрирование</div>
+            <div class="hint">Пароль хранится в sessionStorage. “Выйти” очистит пароль.</div>
+          </div>
+          <div class="row" style="gap:8px; flex-wrap:wrap">
+            <button id="adminDayBtn" class="btn ghost">Итоги дня</button>
+            <button id="adminMonthBtn" class="btn ghost">Итоги месяца</button>
+            <button id="adminEmpBtn" class="btn ghost">Корпоративная по сотрудникам</button>
+            <button id="adminInvBtn" class="btn ghost">Остатки</button>
+            <button id="adminStopsBtn" class="btn ghost">Стопы</button>
+            <button id="adminLogoutBtn" class="btn danger">Выйти</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
+          <div style="min-width:220px">
+            <div class="label">Дата (для дня)</div>
+            <input id="adminDate" class="input" type="date" />
+          </div>
+          <div style="min-width:220px">
+            <div class="label">Месяц (YYYY-MM)</div>
+            <input id="adminYm" class="input" placeholder="2026-02" />
+          </div>
+          <div style="flex:1; min-width:240px">
+            <div class="label">Поиск по таблице</div>
+            <input id="adminSearch" class="input" placeholder="Фильтр…" />
+          </div>
+          <button id="adminExportBtn" class="btn primary" style="height:44px">Экспорт CSV</button>
+          <div id="adminStatus" class="pill">—</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="kpiRow">
+          <div class="kpi"><div class="kpiT">Наличные</div><div id="kpiCash" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Карта</div><div id="kpiCard" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Доставка</div><div id="kpiDelivery" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Корп.</div><div id="kpiCorp" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Итого</div><div id="kpiTotal" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Чеков</div><div id="kpiCount" class="kpiV">—</div></div>
+          <div class="kpiWide">
+            <div class="kpiT">Период</div>
+            <div id="kpiPeriod" class="kpiV">—</div>
+            <div class="kpiT" style="margin-top:6px">Режим</div>
+            <div id="kpiMode" class="kpiV">—</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="adminTableWrap">
+          <table class="adminTable">
+            <thead id="adminThead"></thead>
+            <tbody id="adminTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // CONFIG Батуми (твой рабочий веб-апп)
+    window.CITY_CONFIG = {
+      cityKey: "batumi",
+      cityName: "Батуми",
+      apiUrl: "https://script.google.com/macros/s/AKfycbwyq9ZZLVcz60YzZRPPOobfdS9agEsr9gW2U-Uyd3X0Vg8_WwkAh-gvB5XQnaBML0rl/exec",
+      apiToken: "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2",
+      employees: ["Ви","Виталий","Зура","Джули"]
+    };
+  </script>
+  <script src="./assets/pos.js"></script>
+</body>
+</html>
