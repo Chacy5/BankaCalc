@@ -1,6 +1,6 @@
 /**********************
  * BANKA POS (frontend)
- * Split version: assets/pos.js
+ * Root files version: pos.js
  * Requires: window.CITY_CONFIG
  **********************/
 (function () {
@@ -9,92 +9,7 @@
   const API_TOKEN = String(CFG.apiToken || "");
   const EMPLOYEES = Array.isArray(CFG.employees) ? CFG.employees : ["Ви","Виталий","Зура","Джули"];
 
-  if (!API_URL || !API_TOKEN) {
-    alert("Нет CITY_CONFIG.apiUrl / apiToken");
-  }
-
-  const MAIN_CATS = ["Все","Краны","Тара","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
-  const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose/Cider"];
-  const SUB_SET = new Set(BOTTLE_SUB.map(x=>x.toLowerCase()));
-
-  let corporateEmployee = "";
-  let discountPercent = 0;
-  let employeeDiscountPercent = 0;
-
-  function money(n){
-    const x = Math.round((Number(n)||0)*100)/100;
-    return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
-  }
-  function normalize(s){ return String(s||"").toLowerCase().replaceAll("ё","е").trim(); }
-  function esc(s){
-    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  }
-  function uuid(){
-    return (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+"-"+Math.random().toString(16).slice(2));
-  }
-  function parseNum(x){
-    if (x===null || x===undefined) return NaN;
-    return Number(String(x).replace(",", ".").trim());
-  }
-  function todayKey(){
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  function thisYm(){
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    return `${yyyy}-${mm}`;
-  }
-  function tapNumber(name){
-    const m = String(name||"").match(/кран\s*(\d+)/i);
-    return m ? Number(m[1]) : 9999;
-  }
-  function sortProducts(a,b){
-    const ac = String(a.cat||"").toLowerCase();
-    const bc = String(b.cat||"").toLowerCase();
-
-    const aIsTap = ac==="краны";
-    const bIsTap = bc==="краны";
-    if (aIsTap && bIsTap) return tapNumber(a.name) - tapNumber(b.name);
-    if (aIsTap !== bIsTap) return aIsTap ? -1 : 1;
-
-    return String(a.name||"").localeCompare(String(b.name||""),"ru");
-  }
-
-  async function apiGet(path, params={}){
-    const qs = new URLSearchParams({ path, token: API_TOKEN, ...params });
-    const res = await fetch(`${API_URL}?${qs.toString()}`);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "API error");
-    return data;
-  }
-
-  async function apiPost(body){
-    const qs = new URLSearchParams({ token: API_TOKEN });
-    const res = await fetch(`${API_URL}?${qs.toString()}`,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "API error");
-    return data;
-  }
-
-  async function apiGetAdmin(path, params={}){
-    const adminPassword = sessionStorage.getItem("banka_admin_password") || "";
-    const qs = new URLSearchParams({ path, token: API_TOKEN, adminPassword, ...params });
-    const res = await fetch(`${API_URL}?${qs.toString()}`);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Admin API error");
-    return data;
-  }
-
+  // ---- UI els ----
   const el = {
     cityTitle: document.getElementById("cityTitle"),
     syncStatus: document.getElementById("syncStatus"),
@@ -133,16 +48,8 @@
     closeShiftBtn: document.getElementById("closeShiftBtn"),
 
     refreshBtn: document.getElementById("refreshBtn"),
-    menuTabBtn: document.getElementById("menuTabBtn"),
-    menuTab: document.getElementById("menuTab"),
-    stopTab: document.getElementById("stopTab"),
     catBar: document.getElementById("catBar"),
     subBar: document.getElementById("subBar"),
-    quickGrid: document.getElementById("quickGrid"),
-    stopCount: document.getElementById("stopCount"),
-    stopCatBar: document.getElementById("stopCatBar"),
-    stopSubBar: document.getElementById("stopSubBar"),
-    stopList: document.getElementById("stopList"),
 
     // ADMIN
     adminStatus: document.getElementById("adminStatus"),
@@ -170,47 +77,169 @@
     adminTbody: document.getElementById("adminTbody"),
 
     loadingOverlay: document.getElementById("loadingOverlay"),
+
+    quickGrid: document.getElementById("quickGrid"),
   };
 
-  // city label
   if (el.cityTitle) el.cityTitle.textContent = String(CFG.cityName || "Батуми");
+  if (CFG.cityKey) localStorage.setItem("banka_city", String(CFG.cityKey));
 
-  // --------- STATE ----------
-  let state = null;
-  let catalog = [];
-  let stopSet = new Set();
+  // ---- helpers ----
+  function money(n){
+    const x = Math.round((Number(n)||0)*100)/100;
+    return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
+  }
+  function normalize(s){ return String(s||"").toLowerCase().replaceAll("ё","е").trim(); }
+  function esc(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+  function parseNum(x){
+    if (x===null || x===undefined) return NaN;
+    return Number(String(x).replace(",", ".").trim());
+  }
+  function uuid(){
+    return (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+"-"+Math.random().toString(16).slice(2));
+  }
+  function todayKey(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  function thisYm(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    return `${yyyy}-${mm}`;
+  }
+  function tapNumber(name){
+    const m = String(name||"").match(/кран\s*(\d+)/i);
+    return m ? Number(m[1]) : 9999;
+  }
+  function sortProducts(a,b){
+    const ac = String(a.cat||"").toLowerCase();
+    const bc = String(b.cat||"").toLowerCase();
 
-  let paymentMethod = "cash";
-  let cart = [];
+    const aIsTap = ac==="краны";
+    const bIsTap = bc==="краны";
+    if (aIsTap && bIsTap) return tapNumber(a.name) - tapNumber(b.name);
+    if (aIsTap !== bIsTap) return aIsTap ? -1 : 1;
 
-  let suggestItems = [];
-  let activeSuggestIndex = -1;
+    return String(a.name||"").localeCompare(String(b.name||""),"ru");
+  }
 
-  let catFilter = "Все";
-  let bottleSub = "IPA/APA";
-  let stopCatFilter = "Все";
-  let stopBottleSub = "IPA/APA";
-
-  // --- LOADING (Fix #1) ---
+  // ---- loader ----
   function setLoading(on, text){
     if (!el.loadingOverlay) return;
     el.loadingOverlay.style.display = on ? "flex" : "none";
     const t = el.loadingOverlay.querySelector(".loadingText");
     if (t) t.textContent = text || (on ? "Загрузка…" : "");
-    // disable pay buttons while loading
     const dis = !!on;
     [el.cashBtn, el.cardBtn, el.deliveryBtn, el.corpBtn].forEach(b=>{
       if (b) b.disabled = dis;
     });
   }
 
-  function mapCategoryFromSheet(p){
-    // оставить как в твоей версии: cat уже приходит из Sheet
-    return String(p.cat || "").trim() || "Другое";
+  // ---- API ----
+  function diagnoseFailedFetch(){
+    return [
+      "Не удалось подключиться к Google Apps Script (Failed to fetch). Проверь:",
+      "1) В batumi.html CITY_CONFIG.apiUrl — это именно Web App URL и он заканчивается на /exec",
+      "2) Apps Script -> Deploy -> Web app: доступ = Anyone (или Anyone with link), Execute as = Me",
+      "3) Открой вручную в браузере:",
+      "   <apiUrl>?path=state&token=<token> — должен вернуться JSON ok:true",
+    ].join("\n");
   }
 
+  async function apiGet(path, params={}){
+    const qs = new URLSearchParams({ path, token: API_TOKEN, ...params });
+    try{
+      const res = await fetch(`${API_URL}?${qs.toString()}`, { method:"GET" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "API error");
+      return data;
+    }catch(err){
+      // Failed to fetch
+      if (String(err).includes("Failed to fetch")) throw new Error(diagnoseFailedFetch());
+      throw err;
+    }
+  }
+
+  async function apiPost(body){
+    const qs = new URLSearchParams({ token: API_TOKEN });
+    try{
+      const res = await fetch(`${API_URL}?${qs.toString()}`,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "API error");
+      return data;
+    }catch(err){
+      if (String(err).includes("Failed to fetch")) throw new Error(diagnoseFailedFetch());
+      throw err;
+    }
+  }
+
+  async function apiGetAdmin(path, params={}){
+    const adminPassword = (sessionStorage.getItem("banka_admin_password") || "").trim();
+    const qs = new URLSearchParams({ path, token: API_TOKEN, adminPassword, ...params });
+    try{
+      const res = await fetch(`${API_URL}?${qs.toString()}`, { method:"GET" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Admin API error");
+      return data;
+    }catch(err){
+      if (String(err).includes("Failed to fetch")) throw new Error(diagnoseFailedFetch());
+      throw err;
+    }
+  }
+
+  // ---- Category canonicalization (FIX for bottle subcategories) ----
+  function canonicalCat(raw) {
+    const s = normalize(raw);
+    if (s.includes("кран")) return "Краны";
+
+    // банки/бутылки/тара -> единая витрина
+    if (s.includes("бан") || s.includes("бутыл") || s.includes("тара")) return "Бутылки/Банки";
+
+    if (s.includes("рыб")) return "Рыба";
+    if (s.includes("снек")) return "Снеки";
+    if (s.includes("мяс")) return "Мясо";
+    if (s.includes("чип")) return "Чипсы";
+
+    const r = String(raw || "").trim();
+    return r || "Другое";
+  }
+
+  // ---- filters ----
+  const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Рыба","Снеки","Мясо","Чипсы"];
+  const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose/Cider"];
+
+  // ---- state ----
+  let state = null;
+  let catalog = [];
+  let stopSet = new Set();
+
+  let corporateEmployee = "";
+  let discountPercent = 0;
+  let employeeDiscountPercent = 0;
+
+  let paymentMethod = "cash";
+  let cart = [];
+
+  let catFilter = "Все";
+  let bottleSub = "IPA/APA";
+
+  // suggest
+  let suggestItems = [];
+  let activeSuggestIndex = -1;
+
   function normalizeProduct(p){
-    const cat = mapCategoryFromSheet(p);
+    const cat = canonicalCat(p.cat);
     return {
       id: normalize(p.id),
       name: String(p.name||"").trim(),
@@ -228,11 +257,10 @@
     state = st;
     catalog = (st.products || []).map(normalizeProduct).sort(sortProducts);
     stopSet = new Set(st.stopIds || []);
-    el.syncStatus.textContent = "OK";
+    if (el.syncStatus) el.syncStatus.textContent = "OK";
     renderCats();
     renderSubcats();
     renderQuickGrid();
-    renderStopList();
     renderCart();
   }
 
@@ -251,6 +279,7 @@
     suggestItems = items || [];
     activeSuggestIndex = -1;
 
+    if (!el.suggest) return;
     if (!suggestItems.length){
       hideSuggest();
       return;
@@ -272,6 +301,7 @@
   }
 
   function hideSuggest(){
+    if (!el.suggest) return;
     el.suggest.style.display = "none";
     el.suggest.innerHTML = "";
     suggestItems = [];
@@ -280,6 +310,7 @@
 
   function setActiveSuggest(i){
     activeSuggestIndex = i;
+    if (!el.suggest) return;
     const nodes = el.suggest.querySelectorAll(".suggestItem");
     nodes.forEach((n,idx)=>n.classList.toggle("active", idx===i));
     if (nodes[i]) nodes[i].scrollIntoView({block:"nearest"});
@@ -289,17 +320,17 @@
     const p = suggestItems[i];
     if (!p) return;
     addToCart(p.id);
-    el.search.value = "";
+    if (el.search) el.search.value = "";
     hideSuggest();
   }
 
   function getQtyInput(){
-    const v = parseNum(el.qtyAdd.value);
+    const v = parseNum(el.qtyAdd?.value);
     if (!Number.isFinite(v) || v<=0) return 1;
     return v;
   }
   function setQtyInput(v){
-    el.qtyAdd.value = String(v);
+    if (el.qtyAdd) el.qtyAdd.value = String(v);
   }
 
   function findProduct(id){
@@ -314,23 +345,14 @@
 
     const q = getQtyInput();
 
-    // stop protection for quick grid & suggest
     if (stopSet.has(pid)){
       alert("Этот товар на стопе.");
       return;
     }
 
-    // pricing qty vs base qty depending on track
-    // count: qtyBase = q, qtyPricing = q
-    // liters: qtyBase = q (литры), qtyPricing = q
-    // keg: qtyBase = q (литры), qtyPricing = q
-    const track = String(p.track||"count").toLowerCase();
-    const qtyBase = q;
-
-    // merge if same product and same unit
     const idx = cart.findIndex(x=>x.productId===pid);
     if (idx>=0){
-      cart[idx].qtyBase = Math.round((cart[idx].qtyBase + qtyBase)*100)/100;
+      cart[idx].qtyBase = Math.round((cart[idx].qtyBase + q)*100)/100;
     } else {
       cart.push({
         productId: pid,
@@ -340,55 +362,56 @@
         track: p.track,
         price: p.price,
         deliveryPrice: p.deliveryPrice,
-        qtyBase: qtyBase,
+        qtyBase: q,
       });
     }
     renderCart();
   }
 
-  function unitPriceFor(item){
-    // Fix #4: delivery must use deliveryPrice (if set)
-    if (paymentMethod === "delivery"){
-      const dp = item.deliveryPrice;
-      if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0) return Number(dp);
-    }
-    return item.price;
+  function setPayment(m){
+    paymentMethod = m;
+    if (el.payModeLabel) el.payModeLabel.textContent = m;
+    renderQuickGrid();
+    renderCart();
   }
 
-  function qtyPricingFor(item){
-    // right now pricing is per qtyBase for everything
-    return Number(item.qtyBase || 0);
+  // delivery price fix
+  function unitPriceFor(item){
+    if (paymentMethod === "delivery"){
+      const dp = item.deliveryPrice;
+      if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0) {
+        return Number(dp);
+      }
+    }
+    return Number(item.price||0);
   }
 
   function lineSum(item){
-    return Math.round(unitPriceFor(item) * qtyPricingFor(item) * 100) / 100;
+    return Math.round(unitPriceFor(item) * Number(item.qtyBase||0) * 100) / 100;
   }
-
   function grossTotal(){
     return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
   }
-
   function discountAmount(){
     const gross = grossTotal();
     const cust = Math.max(0, Math.min(100, Number(discountPercent||0)));
     const emp = Math.max(0, Math.min(100, Number(employeeDiscountPercent||0)));
-    const totalDisc = Math.max(cust, emp); // как и раньше: берём максимум (можно поменять позже)
+    const totalDisc = Math.max(cust, emp);
     return Math.round(gross * (totalDisc/100) * 100) / 100;
   }
-
   function netTotal(){
-    const net = grossTotal() - discountAmount();
-    return Math.round(net*100)/100;
+    return Math.round((grossTotal() - discountAmount())*100)/100;
   }
 
   function renderCart(){
-    // маленькая оптимизация: строим строку один раз
-    el.itemsCount.textContent = String(cart.length);
-    el.grandTotal.textContent = money(netTotal());
+    if (!el.cartBody) return;
 
-    el.discountLabel.textContent = `${Number(discountPercent||0)}%`;
-    el.discountEmpLabel.textContent = `${Number(employeeDiscountPercent||0)}%`;
-    el.empDiscountPill.style.display = employeeDiscountPercent>0 ? "" : "none";
+    if (el.itemsCount) el.itemsCount.textContent = String(cart.length);
+    if (el.grandTotal) el.grandTotal.textContent = money(netTotal());
+
+    if (el.discountLabel) el.discountLabel.textContent = `${Number(discountPercent||0)}%`;
+    if (el.discountEmpLabel) el.discountEmpLabel.textContent = `${Number(employeeDiscountPercent||0)}%`;
+    if (el.empDiscountPill) el.empDiscountPill.style.display = employeeDiscountPercent>0 ? "" : "none";
 
     el.cartBody.innerHTML = cart.map((it,idx)=>{
       const up = unitPriceFor(it);
@@ -407,7 +430,6 @@
       </div>`;
     }).join("");
 
-    // bind row actions
     el.cartBody.querySelectorAll(".trow").forEach(row=>{
       const idx = Number(row.dataset.i);
 
@@ -431,6 +453,7 @@
   }
 
   function renderCats(){
+    if (!el.catBar) return;
     el.catBar.innerHTML = MAIN_CATS.map(c=>(
       `<div class="chip ${c===catFilter?'active':''}" data-c="${esc(c)}">${esc(c)}</div>`
     )).join("");
@@ -440,20 +463,10 @@
         renderQuickGrid();
       });
     });
-
-    // stop cats same
-    el.stopCatBar.innerHTML = MAIN_CATS.map(c=>(
-      `<div class="chip ${c===stopCatFilter?'active':''}" data-c="${esc(c)}">${esc(c)}</div>`
-    )).join("");
-    el.stopCatBar.querySelectorAll(".chip").forEach(ch=>{
-      ch.addEventListener("click", ()=>{
-        stopCatFilter = ch.dataset.c;
-        renderStopList();
-      });
-    });
   }
 
   function renderSubcats(){
+    if (!el.subBar) return;
     el.subBar.innerHTML = BOTTLE_SUB.map(c=>(
       `<div class="chip ${c===bottleSub?'active':''}" data-c="${esc(c)}">${esc(c)}</div>`
     )).join("");
@@ -463,36 +476,28 @@
         renderQuickGrid();
       });
     });
+  }
 
-    el.stopSubBar.innerHTML = BOTTLE_SUB.map(c=>(
-      `<div class="chip ${c===stopBottleSub?'active':''}" data-c="${esc(c)}">${esc(c)}</div>`
-    )).join("");
-    el.stopSubBar.querySelectorAll(".chip").forEach(ch=>{
-      ch.addEventListener("click", ()=>{
-        stopBottleSub = ch.dataset.c;
-        renderStopList();
-      });
-    });
+  function isBottleCategory(cat){
+    return normalize(cat) === normalize("Бутылки/Банки");
   }
 
   function passesFilters(p){
     if (catFilter !== "Все" && p.cat !== catFilter) return false;
 
-    // подкатегории только для "Бутылки/Банки"
-    if (catFilter === "Бутылки/Банки" || p.cat === "Бутылки/Банки"){
-      // ищем саб-кат по имени (как было у тебя)
+    // подкатегории работают, когда выбрана витрина Бутылки/Банки ИЛИ сам товар из неё
+    if (catFilter === "Бутылки/Банки" || isBottleCategory(p.cat)) {
       const n = normalize(p.name);
-      const hasSub = [...SUB_SET].some(s=>n.includes(s));
-      if (hasSub){
-        if (!normalize(p.name).includes(normalize(bottleSub))) return false;
-      } else {
-        // если не распознали саб-кат, не режем
-      }
+      // фильтруем только если по названию реально видно сабкласс
+      // иначе оставляем (чтобы не исчезали “непонятные” позиции)
+      const hasAny = BOTTLE_SUB.some(sub => n.includes(normalize(sub)));
+      if (hasAny && !n.includes(normalize(bottleSub))) return false;
     }
     return true;
   }
 
   function renderQuickGrid(){
+    if (!el.quickGrid) return;
     const items = catalog.filter(p=>passesFilters(p));
     el.quickGrid.innerHTML = items.map(p=>{
       const isStop = stopSet.has(p.id);
@@ -511,32 +516,6 @@
     });
   }
 
-  function renderStopList(){
-    const stops = catalog.filter(p=>stopSet.has(p.id));
-    const filtered = stops.filter(p=>{
-      if (stopCatFilter !== "Все" && p.cat !== stopCatFilter) return false;
-      if (p.cat === "Бутылки/Банки"){
-        if (!normalize(p.name).includes(normalize(stopBottleSub))) return false;
-      }
-      return true;
-    });
-
-    el.stopCount.textContent = String(filtered.length);
-    el.stopList.innerHTML = filtered.map(p=>(
-      `<div class="stopItem">
-        <div class="name">${esc(p.name)}</div>
-        <div class="meta">${esc(p.cat)}</div>
-      </div>`
-    )).join("");
-  }
-
-  function setPayment(m){
-    paymentMethod = m;
-    el.payModeLabel.textContent = m;
-    renderQuickGrid();
-    renderCart();
-  }
-
   function clearDiscounts(){
     discountPercent = 0;
     employeeDiscountPercent = 0;
@@ -552,7 +531,26 @@
     renderCart();
   }
 
-  // Fix #3: employee discount вводится после "Корпоративная"
+  function resetAfterSale(){
+    cart = [];
+    corporateEmployee = "";
+    clearDiscounts();
+
+    catFilter = "Все";
+    bottleSub = "IPA/APA";
+
+    if (el.search) el.search.value = "";
+    hideSuggest();
+    setQtyInput(1);
+
+    setPayment("cash");
+
+    renderCats();
+    renderSubcats();
+    renderQuickGrid();
+    renderCart();
+  }
+
   async function corporatePayFlow(){
     if (!cart.length){
       alert("Чек пустой.");
@@ -567,9 +565,8 @@
       return;
     }
 
-    // Скидка персоналу — теперь тут, после корпоративной
     const empDisc = prompt("Скидка персоналу (%)? (0..100, можно 0)", String(employeeDiscountPercent||0));
-    if (empDisc === null) return; // если отменили — ничего не пробиваем
+    if (empDisc === null) return;
     const d = parseNum(empDisc);
     if (!Number.isFinite(d) || d<0 || d>100) { alert("Нужно число 0..100"); return; }
     employeeDiscountPercent = Math.round(d);
@@ -578,28 +575,15 @@
     await pay();
   }
 
-  // Fix #2: после пробития сбрасываем не только чек, но и фильтры/поиск/скидки/режим/сабкаты и т.п.
-  function resetAfterSale(){
-    cart = [];
-    corporateEmployee = "";
-    clearDiscounts();
-
-    // reset UI "links" / selections
-    catFilter = "Все";
-    bottleSub = "IPA/APA";
-    stopCatFilter = "Все";
-    stopBottleSub = "IPA/APA";
-
-    el.search.value = "";
-    hideSuggest();
-    setQtyInput(1);
-
-    setPayment("cash"); // вернём дефолт
-
-    renderCats();
-    renderSubcats();
-    renderQuickGrid();
-    renderCart();
+  function buildKegSwitchesFromServer(res){
+    const switches = {};
+    (res.kegUpdated||[]).forEach(k=>{
+      const v = prompt(`Переключили кег: ${k.name}\nСколько литров налили уже из нового кега ДО пробития?`, "0");
+      if (v === null) return;
+      const n = parseNum(v);
+      if (Number.isFinite(n) && n>0) switches[k.id] = n;
+    });
+    return switches;
   }
 
   async function pay(){
@@ -608,14 +592,13 @@
       return;
     }
 
-    // Fix #1: loading overlay
     setLoading(true, "Пробиваю чек…");
 
     const receiptId = uuid();
     const items = cart.map(it=>({
       productId: it.productId,
       qtyBase: Number(it.qtyBase||0),
-      displayUnit: "", // backend хранит для отчетов
+      displayUnit: "",
       unitPriceUsed: unitPriceFor(it),
     }));
 
@@ -636,10 +619,9 @@
     };
 
     try{
-      el.syncStatus.textContent = "…";
+      if (el.syncStatus) el.syncStatus.textContent = "…";
       let res = await apiPost(payload);
 
-      // backend защищён от двойного списания по receiptId — оставляем как было
       if (res.kegUpdated && res.kegUpdated.length){
         const switches = buildKegSwitchesFromServer(res);
         if (Object.keys(switches).length){
@@ -649,7 +631,7 @@
       }
 
       if (res.lowWarnings && res.lowWarnings.length){
-        const lines = res.lowWarnings.map(x => `${x.name} осталось ${x.remaining} ${x.unit}. Отключите этот товар в доставке`);
+        const lines = res.lowWarnings.map(x => `${x.name} осталось ${x.remaining} ${x.unit}.`);
         alert(lines.join("\n"));
       }
 
@@ -663,23 +645,11 @@
       alert(msg);
 
     }catch(err){
-      el.syncStatus.textContent = "ERR";
+      if (el.syncStatus) el.syncStatus.textContent = "ERR";
       alert("Ошибка при пробитии: " + err);
     }finally{
       setLoading(false);
     }
-  }
-
-  function buildKegSwitchesFromServer(res){
-    // как в твоей версии: спрашиваем доп.литры с нового кега при автопереключении
-    const switches = {};
-    (res.kegUpdated||[]).forEach(k=>{
-      const v = prompt(`Переключили кег: ${k.name}\nСколько литров налили уже из нового кега ДО пробития?`, "0");
-      if (v === null) return;
-      const n = parseNum(v);
-      if (Number.isFinite(n) && n>0) switches[k.id] = n;
-    });
-    return switches;
   }
 
   async function closeShift(){
@@ -699,24 +669,24 @@
     }
   }
 
-  // -------- ADMIN TABLE RENDER --------
+  // ---- ADMIN ----
   let adminCurrentRows = [];
   let adminCurrentCols = [];
 
   function showAdmin(on){
-    el.posWrap.style.display = on ? "none" : "";
-    el.adminPanel.style.display = on ? "" : "none";
-    el.tabPos.classList.toggle("active", !on);
-    el.tabAdmin.classList.toggle("active", on);
+    if (el.posWrap) el.posWrap.style.display = on ? "none" : "";
+    if (el.adminPanel) el.adminPanel.style.display = on ? "" : "none";
+    if (el.tabPos) el.tabPos.classList.toggle("active", !on);
+    if (el.tabAdmin) el.tabAdmin.classList.toggle("active", on);
   }
 
   function setTab(t){
     if (t==="admin"){
-      const pass = sessionStorage.getItem("banka_admin_password") || "";
+      const pass = (sessionStorage.getItem("banka_admin_password") || "").trim();
       if (!pass){
         const p = prompt("Пароль админа:", "");
         if (p===null) { showAdmin(false); return; }
-        sessionStorage.setItem("banka_admin_password", String(p));
+        sessionStorage.setItem("banka_admin_password", String(p).trim()); // FIX trim
       }
       showAdmin(true);
       return;
@@ -725,27 +695,26 @@
   }
 
   function setKpi(mode, data, periodText){
-    el.kpiMode.textContent = mode || "—";
-    el.kpiPeriod.textContent = periodText || "—";
+    if (el.kpiMode) el.kpiMode.textContent = mode || "—";
+    if (el.kpiPeriod) el.kpiPeriod.textContent = periodText || "—";
 
     if (data && data.byMethod){
-      el.kpiCash.textContent = money(data.byMethod.cash);
-      el.kpiCard.textContent = money(data.byMethod.card);
-      el.kpiDelivery.textContent = money(data.byMethod.delivery);
-      el.kpiCorp.textContent = money(data.byMethod.corporate);
-      el.kpiTotal.textContent = money(data.byMethod.total);
-      el.kpiCount.textContent = String(data.byMethod.count);
+      if (el.kpiCash) el.kpiCash.textContent = money(data.byMethod.cash);
+      if (el.kpiCard) el.kpiCard.textContent = money(data.byMethod.card);
+      if (el.kpiDelivery) el.kpiDelivery.textContent = money(data.byMethod.delivery);
+      if (el.kpiCorp) el.kpiCorp.textContent = money(data.byMethod.corporate);
+      if (el.kpiTotal) el.kpiTotal.textContent = money(data.byMethod.total);
+      if (el.kpiCount) el.kpiCount.textContent = String(data.byMethod.count);
       return;
     }
 
-    // day-like
     if (data){
-      el.kpiCash.textContent = money(data.cash||0);
-      el.kpiCard.textContent = money(data.card||0);
-      el.kpiDelivery.textContent = money(data.delivery||0);
-      el.kpiCorp.textContent = money(data.corporate||0);
-      el.kpiTotal.textContent = money(data.total||0);
-      el.kpiCount.textContent = String(data.count||0);
+      if (el.kpiCash) el.kpiCash.textContent = money(data.cash||0);
+      if (el.kpiCard) el.kpiCard.textContent = money(data.card||0);
+      if (el.kpiDelivery) el.kpiDelivery.textContent = money(data.delivery||0);
+      if (el.kpiCorp) el.kpiCorp.textContent = money(data.corporate||0);
+      if (el.kpiTotal) el.kpiTotal.textContent = money(data.total||0);
+      if (el.kpiCount) el.kpiCount.textContent = String(data.count||0);
     }
   }
 
@@ -753,6 +722,7 @@
     adminCurrentCols = cols || [];
     adminCurrentRows = rows || [];
 
+    if (!el.adminThead || !el.adminTbody) return;
     el.adminThead.innerHTML = `<tr>${adminCurrentCols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>`;
     el.adminTbody.innerHTML = adminCurrentRows.map(r=>(
       `<tr>${adminCurrentCols.map(c=>`<td>${esc(r[c] ?? "")}</td>`).join("")}</tr>`
@@ -797,84 +767,67 @@
 
   async function adminDay(){
     try{
-      el.adminStatus.textContent = "…";
-      const date = el.adminDate.value || todayKey();
+      if (el.adminStatus) el.adminStatus.textContent = "…";
+      const date = el.adminDate?.value || todayKey();
       const data = await apiGetAdmin("admin/day", { date });
       setKpi("day", data, date);
-      // daily show simple table
-      renderAdminTable(
-        ["dayKey","cash","card","delivery","corporate","total","count"],
-        [data]
-      );
-      el.adminStatus.textContent = "OK";
+      renderAdminTable(["dayKey","cash","card","delivery","corporate","total","count"], [data]);
+      if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
-      el.adminStatus.textContent = "ERR";
+      if (el.adminStatus) el.adminStatus.textContent = "ERR";
       alert("Admin error: " + err);
     }
   }
 
   async function adminMonth(){
     try{
-      el.adminStatus.textContent = "…";
-      const ym = el.adminYm.value || thisYm();
+      if (el.adminStatus) el.adminStatus.textContent = "…";
+      const ym = el.adminYm?.value || thisYm();
       const data = await apiGetAdmin("admin/month", { ym });
       setKpi("month", data, ym);
-
-      renderAdminTable(
-        ["dayKey","total","count"],
-        data.daily || []
-      );
-      el.adminStatus.textContent = "OK";
+      renderAdminTable(["dayKey","total","count"], data.daily || []);
+      if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
-      el.adminStatus.textContent = "ERR";
+      if (el.adminStatus) el.adminStatus.textContent = "ERR";
       alert("Admin error: " + err);
     }
   }
 
   async function adminCorpByEmp(){
     try{
-      el.adminStatus.textContent = "…";
-      const ym = el.adminYm.value || thisYm();
+      if (el.adminStatus) el.adminStatus.textContent = "…";
+      const ym = el.adminYm?.value || thisYm();
       const data = await apiGetAdmin("admin/corporateByEmployeeMonth", { ym });
       setKpi("corp-by-emp", { byMethod:{ cash:0,card:0,delivery:0,corporate:0,total:0,count:0 } }, ym);
       renderAdminTable(["employee","total"], data.employees || []);
-      el.adminStatus.textContent = "OK";
+      if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
-      el.adminStatus.textContent = "ERR";
+      if (el.adminStatus) el.adminStatus.textContent = "ERR";
       alert("Admin error: " + err);
     }
   }
 
   async function adminInventory(){
     try{
-      el.adminStatus.textContent = "…";
+      if (el.adminStatus) el.adminStatus.textContent = "…";
       const data = await apiGetAdmin("admin/inventory", {});
-      const rows = (data.list || []).map(x=>{
-        const out = {...x};
-        // нормализуем поля для таблицы
-        if (out.track==="keg"){
-          out.qty = "";
-          out.remainingL = Number(out.remainingL||0);
-          out.spares = Number(out.spares||0);
-        }
-        return out;
-      });
+      const rows = (data.list || []).map(x=>({ ...x }));
       renderAdminTable(["id","name","cat","track","qty","remainingL","spares","stop"], rows);
-      el.adminStatus.textContent = "OK";
+      if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
-      el.adminStatus.textContent = "ERR";
+      if (el.adminStatus) el.adminStatus.textContent = "ERR";
       alert("Admin error: " + err);
     }
   }
 
   async function adminStops(){
     try{
-      el.adminStatus.textContent = "…";
+      if (el.adminStatus) el.adminStatus.textContent = "…";
       const data = await apiGetAdmin("admin/stops", {});
       renderAdminTable(["id","name","cat","track"], data.stops || []);
-      el.adminStatus.textContent = "OK";
+      if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
-      el.adminStatus.textContent = "ERR";
+      if (el.adminStatus) el.adminStatus.textContent = "ERR";
       alert("Admin error: " + err);
     }
   }
@@ -898,106 +851,96 @@
 
   async function refreshState(){
     try{
-      el.syncStatus.textContent = "…";
+      if (el.syncStatus) el.syncStatus.textContent = "…";
       const st = await apiGet("state",{});
       applyStateToUI(st);
     }catch(err){
-      el.syncStatus.textContent = "ERR";
+      if (el.syncStatus) el.syncStatus.textContent = "ERR";
       alert("Ошибка обновления: " + err);
     }
   }
 
-  // -------- EVENTS --------
+  // ---- EVENTS ----
   document.querySelectorAll(".tab").forEach(b=>{
     b.addEventListener("click", ()=>setTab(b.dataset.tab));
   });
 
-  el.search.addEventListener("input", ()=>{
-    const items = suggest(el.search.value);
-    showSuggest(items);
-  });
+  if (el.search){
+    el.search.addEventListener("input", ()=>{
+      showSuggest(suggest(el.search.value));
+    });
 
-  el.search.addEventListener("keydown", (e)=>{
-    if (e.key==="Escape"){ hideSuggest(); return; }
-    if (!suggestItems.length) return;
+    el.search.addEventListener("keydown", (e)=>{
+      if (e.key==="Escape"){ hideSuggest(); return; }
+      if (!suggestItems.length) return;
 
-    if (e.key==="ArrowDown"){
-      e.preventDefault();
-      setActiveSuggest(Math.min(suggestItems.length-1, activeSuggestIndex+1));
-    }
-    if (e.key==="ArrowUp"){
-      e.preventDefault();
-      setActiveSuggest(Math.max(0, activeSuggestIndex-1));
-    }
-    if (e.key==="Enter"){
-      e.preventDefault();
-      const i = activeSuggestIndex>=0 ? activeSuggestIndex : 0;
-      pickSuggest(i);
-    }
-  });
+      if (e.key==="ArrowDown"){
+        e.preventDefault();
+        setActiveSuggest(Math.min(suggestItems.length-1, activeSuggestIndex+1));
+      }
+      if (e.key==="ArrowUp"){
+        e.preventDefault();
+        setActiveSuggest(Math.max(0, activeSuggestIndex-1));
+      }
+      if (e.key==="Enter"){
+        e.preventDefault();
+        const i = activeSuggestIndex>=0 ? activeSuggestIndex : 0;
+        pickSuggest(i);
+      }
+    });
+  }
 
-  el.qtyMinus.addEventListener("click", ()=>{
-    const v = Math.max(0.01, Math.round((getQtyInput()-1)*100)/100);
-    setQtyInput(v);
-  });
-  el.qtyPlus.addEventListener("click", ()=>{
-    const v = Math.round((getQtyInput()+1)*100)/100;
-    setQtyInput(v);
-  });
+  if (el.qtyMinus) el.qtyMinus.addEventListener("click", ()=> setQtyInput(Math.max(0.01, Math.round((getQtyInput()-1)*100)/100)));
+  if (el.qtyPlus)  el.qtyPlus.addEventListener("click", ()=> setQtyInput(Math.round((getQtyInput()+1)*100)/100));
 
-  el.addBtn.addEventListener("click", ()=>{
-    const items = suggest(el.search.value);
-    if (!items.length){
-      alert("Не найдено.");
-      return;
-    }
+  if (el.addBtn) el.addBtn.addEventListener("click", ()=>{
+    const items = suggest(el.search?.value || "");
+    if (!items.length){ alert("Не найдено."); return; }
     addToCart(items[0].id);
-    el.search.value = "";
+    if (el.search) el.search.value = "";
     hideSuggest();
   });
 
-  el.cashBtn.addEventListener("click", async ()=>{ setPayment("cash"); await pay(); });
-  el.cardBtn.addEventListener("click", async ()=>{ setPayment("card"); await pay(); });
-  el.deliveryBtn.addEventListener("click", async ()=>{ setPayment("delivery"); await pay(); });
-  el.corpBtn.addEventListener("click", corporatePayFlow);
+  if (el.cashBtn) el.cashBtn.addEventListener("click", async ()=>{ setPayment("cash"); await pay(); });
+  if (el.cardBtn) el.cardBtn.addEventListener("click", async ()=>{ setPayment("card"); await pay(); });
+  if (el.deliveryBtn) el.deliveryBtn.addEventListener("click", async ()=>{ setPayment("delivery"); await pay(); });
+  if (el.corpBtn) el.corpBtn.addEventListener("click", corporatePayFlow);
 
-  el.discountBtn.addEventListener("click", setCustomerDiscount);
-  el.discountClearBtn.addEventListener("click", clearDiscounts);
+  if (el.discountBtn) el.discountBtn.addEventListener("click", setCustomerDiscount);
+  if (el.discountClearBtn) el.discountClearBtn.addEventListener("click", clearDiscounts);
 
-  el.copyBtn.addEventListener("click", copyReceipt);
-  el.clearBtn.addEventListener("click", clearCart);
-  el.closeShiftBtn.addEventListener("click", closeShift);
+  if (el.copyBtn) el.copyBtn.addEventListener("click", copyReceipt);
+  if (el.clearBtn) el.clearBtn.addEventListener("click", clearCart);
+  if (el.closeShiftBtn) el.closeShiftBtn.addEventListener("click", closeShift);
 
-  el.refreshBtn.addEventListener("click", refreshState);
-  if (el.menuTabBtn) el.menuTabBtn.addEventListener("click", ()=>{ el.stopTab.style.display="none"; });
+  if (el.refreshBtn) el.refreshBtn.addEventListener("click", refreshState);
 
-  // admin
-  el.adminDayBtn.addEventListener("click", adminDay);
-  el.adminMonthBtn.addEventListener("click", adminMonth);
-  el.adminEmpBtn.addEventListener("click", adminCorpByEmp);
-  el.adminInvBtn.addEventListener("click", adminInventory);
-  el.adminStopsBtn.addEventListener("click", adminStops);
-  el.adminLogoutBtn.addEventListener("click", ()=>{
+  if (el.adminDayBtn) el.adminDayBtn.addEventListener("click", adminDay);
+  if (el.adminMonthBtn) el.adminMonthBtn.addEventListener("click", adminMonth);
+  if (el.adminEmpBtn) el.adminEmpBtn.addEventListener("click", adminCorpByEmp);
+  if (el.adminInvBtn) el.adminInvBtn.addEventListener("click", adminInventory);
+  if (el.adminStopsBtn) el.adminStopsBtn.addEventListener("click", adminStops);
+  if (el.adminLogoutBtn) el.adminLogoutBtn.addEventListener("click", ()=>{
     sessionStorage.removeItem("banka_admin_password");
     alert("Вышли ✅");
     showAdmin(false);
   });
 
-  el.adminSearch.addEventListener("input", ()=>filterAdminTable(el.adminSearch.value));
-  el.adminExportBtn.addEventListener("click", exportAdminCsv);
+  if (el.adminSearch) el.adminSearch.addEventListener("input", ()=>filterAdminTable(el.adminSearch.value));
+  if (el.adminExportBtn) el.adminExportBtn.addEventListener("click", exportAdminCsv);
 
-  // init defaults
-  el.adminDate.value = todayKey();
-  el.adminYm.value = thisYm();
-
-  // -------- INIT --------
+  // ---- INIT ----
   (async function init(){
+    if (!API_URL || !API_TOKEN){
+      alert("В batumi.html не заполнен CITY_CONFIG.apiUrl или apiToken");
+      return;
+    }
+    if (el.adminDate) el.adminDate.value = todayKey();
+    if (el.adminYm) el.adminYm.value = thisYm();
+
     try{
-      localStorage.setItem("banka_city", String(CFG.cityKey || "batumi"));
-      await refreshState();
-      renderCats();
-      renderSubcats();
       setPayment("cash");
+      await refreshState();
     }catch(err){
       alert("Init error: " + err);
     }
