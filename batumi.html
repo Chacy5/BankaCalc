@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <!-- LOADING OVERLAY -->
   <div id="loadingOverlay" class="loadingOverlay" style="display:none">
     <div class="spinner"></div>
     <div class="loadingText">Пробиваю чек…</div>
@@ -37,10 +36,8 @@
   </div>
 
   <div class="wrap">
-    <!-- POS -->
     <div id="posWrap">
       <div class="grid2">
-        <!-- LEFT: CATALOG -->
         <div class="card">
           <div class="row" style="gap:10px; flex-wrap:wrap">
             <div style="flex:1; min-width:240px">
@@ -86,7 +83,6 @@
           <div id="quickGrid" class="quickGrid"></div>
         </div>
 
-        <!-- RIGHT: CART -->
         <div class="card">
           <div class="row" style="justify-content:space-between; align-items:center; gap:10px">
             <div>
@@ -132,7 +128,8 @@
 
           <div class="row payRow" style="gap:10px; flex-wrap:wrap">
             <button id="cashBtn" class="btn pay">Наличные</button>
-            <button id="cardBtn" class="btn pay">Карта</button>
+            <button id="tbcBtn" class="btn pay">TBC</button>
+            <button id="bogBtn" class="btn pay">BOG</button>
             <button id="deliveryBtn" class="btn pay">Доставка</button>
             <button id="corpBtn" class="btn pay">Корпоративная</button>
 
@@ -146,7 +143,6 @@
       </div>
     </div>
 
-    <!-- ADMIN -->
     <div id="adminPanel" style="display:none">
       <div class="card">
         <div class="row" style="justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap">
@@ -187,7 +183,8 @@
 
         <div class="kpiRow">
           <div class="kpi"><div class="kpiT">Наличные</div><div id="kpiCash" class="kpiV">—</div></div>
-          <div class="kpi"><div class="kpiT">Карта</div><div id="kpiCard" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">TBC</div><div id="kpiTbc" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">BOG</div><div id="kpiBog" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">Доставка</div><div id="kpiDelivery" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">Корп.</div><div id="kpiCorp" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">Итого</div><div id="kpiTotal" class="kpiV">—</div></div>
@@ -213,11 +210,10 @@
   </div>
 
   <script>
-    // ⚠️ ПОДСТАВЬ СЮДА СВОЙ РЕАЛЬНЫЙ WEB APP URL (Deploy -> Web app) и token
     window.CITY_CONFIG = {
       cityKey: "batumi",
       cityName: "Батуми",
-      apiUrl: "https://script.google.com/macros/s/AKfycbwyq9ZZLVcz60YzZRPPOobfdS9agEsr9gW2U-Uyd3X0Vg8_WwkAh-gvB5XQnaBML0rl/exec",   // например: https://script.google.com/macros/s/XXXX/exec
+      apiUrl: "PASTE_YOUR_WEBAPP_EXEC_URL_HERE",
       apiToken: "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2",
       employees: ["Ви","Виталий","Зура","Джули"]
     };
