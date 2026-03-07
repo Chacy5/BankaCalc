@@ -1,7 +1,6 @@
 /**********************
  * BANKA POS (frontend)
- * Root files version: pos.js (TBC/BOG + cart +/-)
- * Requires: window.CITY_CONFIG
+ * Reserve + Glovo/Bolt + payment order
  **********************/
 (function () {
   const CFG = window.CITY_CONFIG || {};
@@ -15,9 +14,15 @@
     payModeLabel: document.getElementById("payModeLabel"),
 
     tabPos: document.getElementById("tabPos"),
+    tabReserve: document.getElementById("tabReserve"),
     tabAdmin: document.getElementById("tabAdmin"),
     posWrap: document.getElementById("posWrap"),
+    reservePanel: document.getElementById("reservePanel"),
     adminPanel: document.getElementById("adminPanel"),
+
+    reserveAmount: document.getElementById("reserveAmount"),
+    reservePlusBtn: document.getElementById("reservePlusBtn"),
+    reserveMinusBtn: document.getElementById("reserveMinusBtn"),
 
     search: document.getElementById("search"),
     suggest: document.getElementById("suggest"),
@@ -35,10 +40,12 @@
     empDiscountPill: document.getElementById("empDiscountPill"),
 
     cashBtn: document.getElementById("cashBtn"),
+    corpBtn: document.getElementById("corpBtn"),
     tbcBtn: document.getElementById("tbcBtn"),
     bogBtn: document.getElementById("bogBtn"),
-    deliveryBtn: document.getElementById("deliveryBtn"),
-    corpBtn: document.getElementById("corpBtn"),
+    glovoBtn: document.getElementById("glovoBtn"),
+    boltBtn: document.getElementById("boltBtn"),
+    reserveBtn: document.getElementById("reserveBtn"),
 
     discountBtn: document.getElementById("discountBtn"),
     discountClearBtn: document.getElementById("discountClearBtn"),
@@ -64,10 +71,11 @@
     kpiCash: document.getElementById("kpiCash"),
     kpiTbc: document.getElementById("kpiTbc"),
     kpiBog: document.getElementById("kpiBog"),
-    kpiDelivery: document.getElementById("kpiDelivery"),
-    kpiCorp: document.getElementById("kpiCorp"),
+    kpiGlovo: document.getElementById("kpiGlovo"),
+    kpiBolt: document.getElementById("kpiBolt"),
     kpiTotal: document.getElementById("kpiTotal"),
     kpiCount: document.getElementById("kpiCount"),
+    kpiReserve: document.getElementById("kpiReserve"),
     kpiPeriod: document.getElementById("kpiPeriod"),
     kpiMode: document.getElementById("kpiMode"),
 
@@ -137,7 +145,7 @@
     const t = el.loadingOverlay.querySelector(".loadingText");
     if (t) t.textContent = text || (on ? "Загрузка…" : "");
     const dis = !!on;
-    [el.cashBtn, el.tbcBtn, el.bogBtn, el.deliveryBtn, el.corpBtn].forEach(b=>{
+    [el.cashBtn, el.corpBtn, el.tbcBtn, el.bogBtn, el.glovoBtn, el.boltBtn].forEach(b=>{
       if (b) b.disabled = dis;
     });
   }
@@ -227,6 +235,8 @@
   let catalog = [];
   let stopSet = new Set();
 
+  let reserveAmount = 0;
+
   let corporateEmployee = "";
   let discountPercent = 0;
   let employeeDiscountPercent = 0;
@@ -263,6 +273,8 @@
     state = st;
     catalog = (st.products || []).map(normalizeProduct).sort(sortProducts);
     stopSet = new Set(st.stopIds || []);
+    reserveAmount = Number(st.reserveAmount || 0);
+    if (el.reserveAmount) el.reserveAmount.textContent = money(reserveAmount) + " GEL";
     if (el.syncStatus) el.syncStatus.textContent = "OK";
     renderCats();
     renderSubcats();
@@ -388,7 +400,7 @@
   }
 
   function unitPriceFor(item){
-    if (paymentMethod === "delivery"){
+    if (paymentMethod === "glovo" || paymentMethod === "bolt"){
       const dp = item.deliveryPrice;
       if (dp !== "" && dp !== null && dp !== undefined && Number.isFinite(Number(dp)) && Number(dp) > 0) {
         return Number(dp);
@@ -434,7 +446,7 @@
       return `<div class="trow" data-i="${idx}">
         <div>
           <div style="font-weight:850">${esc(it.name)}</div>
-          <div style="font-size:12px;opacity:.7">${esc(it.cat)}${it.subcat ? " • " + esc(it.subcat) : ""} • ${paymentMethod==="delivery" ? "доставка" : "обычно"}</div>
+          <div style="font-size:12px;opacity:.7">${esc(it.cat)}${it.subcat ? " • " + esc(it.subcat) : ""} • ${paymentMethod==="glovo" || paymentMethod==="bolt" ? "доставка" : "обычно"}</div>
         </div>
         <div class="right">
           <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end">
@@ -541,7 +553,7 @@
     const items = catalog.filter(p=>passesFilters(p));
     el.quickGrid.innerHTML = items.map(p=>{
       const isStop = stopSet.has(p.id);
-      const price = (paymentMethod==="delivery" && p.deliveryPrice!=="") ? p.deliveryPrice : p.price;
+      const price = ((paymentMethod==="glovo" || paymentMethod==="bolt") && p.deliveryPrice!=="") ? p.deliveryPrice : p.price;
       return `<div class="quickBtn ${isStop?'stop':''}" data-id="${esc(p.id)}">
         <div class="quickName">${esc(p.name)}</div>
         <div class="quickMeta">${esc(p.cat)}${p.subcat ? " • " + esc(p.subcat) : ""} • ${money(price)} GEL</div>
@@ -613,6 +625,74 @@
 
     setPayment("corporate");
     await pay();
+  }
+
+  async function reserveAddFlow(){
+    const amountRaw = prompt("Сколько добавить в резерв? (лари)", "0");
+    if (amountRaw === null) return;
+    const amount = parseNum(amountRaw);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Нужно положительное число.");
+      return;
+    }
+
+    const source = prompt("Откуда добавляем?\nНапример: директор / закрытие смены / выручка", "");
+    if (source === null) return;
+    const note = String(source || "").trim();
+    if (!note) {
+      alert("Нужно указать источник.");
+      return;
+    }
+
+    try{
+      setLoading(true, "Обновляю резерв…");
+      const res = await apiPost({
+        path: "reserveAdd",
+        amount,
+        reason: note
+      });
+      reserveAmount = Number(res.reserveAmount || 0);
+      if (el.reserveAmount) el.reserveAmount.textContent = money(reserveAmount) + " GEL";
+      alert(`Добавлено в резерв: ${money(amount)} GEL`);
+    }catch(err){
+      alert("Ошибка резерва: " + err);
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  async function reserveSubtractFlow(){
+    const amountRaw = prompt("Сколько списать из резерва? (лари)", "0");
+    if (amountRaw === null) return;
+    const amount = parseNum(amountRaw);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Нужно положительное число.");
+      return;
+    }
+
+    const reason = prompt("На что списываем?\nНапример: доставка / поставщик / ремонт", "");
+    if (reason === null) return;
+    const note = String(reason || "").trim();
+    if (!note) {
+      alert("Нужно указать назначение.");
+      return;
+    }
+
+    try{
+      setLoading(true, "Обновляю резерв…");
+      const res = await apiPost({
+        path: "reserveSubtract",
+        amount,
+        reason: note
+      });
+      reserveAmount = Number(res.reserveAmount || 0);
+      if (el.reserveAmount) el.reserveAmount.textContent = money(reserveAmount) + " GEL";
+      alert(`Списано из резерва: ${money(amount)} GEL`);
+    }catch(err){
+      alert("Ошибка резерва: " + err);
+    }finally{
+      setLoading(false);
+    }
   }
 
   function buildKegSwitchesFromServer(res){
@@ -700,10 +780,11 @@
         `Наличные: ${money(data.cash)} GEL\n` +
         `TBC: ${money(data.tbc)} GEL\n` +
         `BOG: ${money(data.bog)} GEL\n` +
-        `Доставка: ${money(data.delivery)} GEL\n` +
-        `Корпоративная: ${money(data.corporate)} GEL\n\n` +
+        `Glovo: ${money(data.glovo)} GEL\n` +
+        `Bolt: ${money(data.bolt)} GEL\n\n` +
         `ИТОГО: ${money(data.total)} GEL\n` +
-        `Чеков: ${data.count}`
+        `Чеков: ${data.count}\n\n` +
+        `Резерв: ${money(data.reserveAmount || 0)} GEL`
       );
     }catch(err){
       alert("Ошибка: " + err);
@@ -713,25 +794,34 @@
   let adminCurrentRows = [];
   let adminCurrentCols = [];
 
-  function showAdmin(on){
-    if (el.posWrap) el.posWrap.style.display = on ? "none" : "";
-    if (el.adminPanel) el.adminPanel.style.display = on ? "" : "none";
-    if (el.tabPos) el.tabPos.classList.toggle("active", !on);
-    if (el.tabAdmin) el.tabAdmin.classList.toggle("active", on);
+  function showScreen(mode){
+    if (el.posWrap) el.posWrap.style.display = mode === "pos" ? "" : "none";
+    if (el.reservePanel) el.reservePanel.style.display = mode === "reserve" ? "" : "none";
+    if (el.adminPanel) el.adminPanel.style.display = mode === "admin" ? "" : "none";
+
+    if (el.tabPos) el.tabPos.classList.toggle("active", mode === "pos");
+    if (el.tabReserve) el.tabReserve.classList.toggle("active", mode === "reserve");
+    if (el.tabAdmin) el.tabAdmin.classList.toggle("active", mode === "admin");
   }
 
-  function setTab(t){
-    if (t==="admin"){
+  function setTab(mode){
+    if (mode === "admin"){
       const pass = (sessionStorage.getItem("banka_admin_password") || "").trim();
       if (!pass){
         const p = prompt("Пароль админа:", "");
-        if (p===null) { showAdmin(false); return; }
+        if (p===null) { showScreen("pos"); return; }
         sessionStorage.setItem("banka_admin_password", String(p).trim());
       }
-      showAdmin(true);
+      showScreen("admin");
       return;
     }
-    showAdmin(false);
+
+    if (mode === "reserve"){
+      showScreen("reserve");
+      return;
+    }
+
+    showScreen("pos");
   }
 
   function setKpi(mode, data, periodText){
@@ -742,10 +832,11 @@
       if (el.kpiCash) el.kpiCash.textContent = money(data.byMethod.cash);
       if (el.kpiTbc) el.kpiTbc.textContent = money(data.byMethod.tbc);
       if (el.kpiBog) el.kpiBog.textContent = money(data.byMethod.bog);
-      if (el.kpiDelivery) el.kpiDelivery.textContent = money(data.byMethod.delivery);
-      if (el.kpiCorp) el.kpiCorp.textContent = money(data.byMethod.corporate);
+      if (el.kpiGlovo) el.kpiGlovo.textContent = money(data.byMethod.glovo);
+      if (el.kpiBolt) el.kpiBolt.textContent = money(data.byMethod.bolt);
       if (el.kpiTotal) el.kpiTotal.textContent = money(data.byMethod.total);
       if (el.kpiCount) el.kpiCount.textContent = String(data.byMethod.count);
+      if (el.kpiReserve) el.kpiReserve.textContent = money(data.reserveAmount || 0);
       return;
     }
 
@@ -753,10 +844,11 @@
       if (el.kpiCash) el.kpiCash.textContent = money(data.cash||0);
       if (el.kpiTbc) el.kpiTbc.textContent = money(data.tbc||0);
       if (el.kpiBog) el.kpiBog.textContent = money(data.bog||0);
-      if (el.kpiDelivery) el.kpiDelivery.textContent = money(data.delivery||0);
-      if (el.kpiCorp) el.kpiCorp.textContent = money(data.corporate||0);
+      if (el.kpiGlovo) el.kpiGlovo.textContent = money(data.glovo||0);
+      if (el.kpiBolt) el.kpiBolt.textContent = money(data.bolt||0);
       if (el.kpiTotal) el.kpiTotal.textContent = money(data.total||0);
       if (el.kpiCount) el.kpiCount.textContent = String(data.count||0);
+      if (el.kpiReserve) el.kpiReserve.textContent = money(data.reserveAmount || 0);
     }
   }
 
@@ -813,7 +905,7 @@
       const date = el.adminDate?.value || todayKey();
       const data = await apiGetAdmin("admin/day", { date });
       setKpi("day", data, date);
-      renderAdminTable(["dayKey","cash","tbc","bog","delivery","corporate","total","count"], [data]);
+      renderAdminTable(["dayKey","cash","tbc","bog","glovo","bolt","total","count","reserveAmount"], [data]);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
       if (el.adminStatus) el.adminStatus.textContent = "ERR";
@@ -827,7 +919,7 @@
       const ym = el.adminYm?.value || thisYm();
       const data = await apiGetAdmin("admin/month", { ym });
       setKpi("month", data, ym);
-      renderAdminTable(["dayKey","total","count","cash","tbc","bog","delivery","corporate"], data.daily || []);
+      renderAdminTable(["dayKey","total","count","cash","tbc","bog","glovo","bolt"], data.daily || []);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
       if (el.adminStatus) el.adminStatus.textContent = "ERR";
@@ -840,7 +932,7 @@
       if (el.adminStatus) el.adminStatus.textContent = "…";
       const ym = el.adminYm?.value || thisYm();
       const data = await apiGetAdmin("admin/corporateByEmployeeMonth", { ym });
-      setKpi("corp-by-emp", { byMethod:{ cash:0,tbc:0,bog:0,delivery:0,corporate:0,total:0,count:0 } }, ym);
+      setKpi("corp-by-emp", { byMethod:{ cash:0,tbc:0,bog:0,glovo:0,bolt:0,total:0,count:0 }, reserveAmount }, ym);
       renderAdminTable(["employee","total"], data.employees || []);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
@@ -943,10 +1035,15 @@
   });
 
   if (el.cashBtn) el.cashBtn.addEventListener("click", async ()=>{ setPayment("cash"); await pay(); });
+  if (el.corpBtn) el.corpBtn.addEventListener("click", corporatePayFlow);
   if (el.tbcBtn) el.tbcBtn.addEventListener("click", async ()=>{ setPayment("tbc"); await pay(); });
   if (el.bogBtn) el.bogBtn.addEventListener("click", async ()=>{ setPayment("bog"); await pay(); });
-  if (el.deliveryBtn) el.deliveryBtn.addEventListener("click", async ()=>{ setPayment("delivery"); await pay(); });
-  if (el.corpBtn) el.corpBtn.addEventListener("click", corporatePayFlow);
+  if (el.glovoBtn) el.glovoBtn.addEventListener("click", async ()=>{ setPayment("glovo"); await pay(); });
+  if (el.boltBtn) el.boltBtn.addEventListener("click", async ()=>{ setPayment("bolt"); await pay(); });
+  if (el.reserveBtn) el.reserveBtn.addEventListener("click", ()=>setTab("reserve"));
+
+  if (el.reservePlusBtn) el.reservePlusBtn.addEventListener("click", reserveAddFlow);
+  if (el.reserveMinusBtn) el.reserveMinusBtn.addEventListener("click", reserveSubtractFlow);
 
   if (el.discountBtn) el.discountBtn.addEventListener("click", setCustomerDiscount);
   if (el.discountClearBtn) el.discountClearBtn.addEventListener("click", clearDiscounts);
@@ -965,7 +1062,7 @@
   if (el.adminLogoutBtn) el.adminLogoutBtn.addEventListener("click", ()=>{
     sessionStorage.removeItem("banka_admin_password");
     alert("Вышли ✅");
-    showAdmin(false);
+    showScreen("pos");
   });
 
   if (el.adminSearch) el.adminSearch.addEventListener("input", ()=>filterAdminTable(el.adminSearch.value));
@@ -981,6 +1078,7 @@
 
     try{
       setPayment("cash");
+      showScreen("pos");
       await refreshState();
     }catch(err){
       alert("Init error: " + err);
