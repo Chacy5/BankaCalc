@@ -200,7 +200,7 @@
             <button id="adminEmpBtn" class="btn ghost">Корпоративная по сотрудникам</button>
             <button id="adminInvBtn" class="btn ghost">Остатки</button>
             <button id="adminStopsBtn" class="btn ghost">Стопы</button>
-            <button id="adminShiftsBtn" class="btn ghost">Смены сотрудников</button>
+            <button id="adminEmployeeShiftsBtn" class="btn ghost">Смены сотрудников</button>
             <button id="adminLogoutBtn" class="btn danger">Выйти</button>
           </div>
         </div>
@@ -214,7 +214,7 @@
           </div>
           <div style="min-width:220px">
             <div class="label">Месяц (YYYY-MM)</div>
-            <input id="adminYm" class="input" placeholder="2026-02" />
+            <input id="adminYm" class="input" placeholder="2026-03" />
           </div>
           <div style="flex:1; min-width:240px">
             <div class="label">Поиск по таблице</div>
@@ -243,6 +243,83 @@
           </div>
         </div>
 
+        <div id="employeeSalaryPanel" class="card" style="display:none; margin-top:12px">
+          <div class="label">Смены сотрудников</div>
+
+          <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
+            <div style="min-width:240px">
+              <div class="label">Сотрудник</div>
+              <select id="employeeSalaryEmployee" class="input">
+                <option value="Ви">Ви</option>
+                <option value="Виталий">Виталий</option>
+                <option value="Зура">Зура</option>
+                <option value="Джули">Джули</option>
+              </select>
+            </div>
+
+            <div style="min-width:220px">
+              <div class="label">Месяц</div>
+              <input id="employeeSalaryYm" class="input" placeholder="2026-03" />
+            </div>
+
+            <button id="employeeSalaryShowBtn" class="btn primary" style="height:44px">Показать</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="employeeSalaryEmpty" class="hint">За выбранный месяц смен нет.</div>
+          <div id="employeeSalaryCalendar"></div>
+
+          <div class="divider"></div>
+
+          <div class="kpiRow" style="grid-template-columns: repeat(4, minmax(0,1fr));">
+            <div class="kpi"><div class="kpiT">Смен</div><div id="employeeSalaryCount" class="kpiV">0</div></div>
+            <div class="kpi"><div class="kpiT">Начислено за смены</div><div id="employeeSalaryAccrued" class="kpiV">0 GEL</div></div>
+            <div class="kpi"><div class="kpiT">Взято продуктами</div><div id="employeeSalaryCorporate" class="kpiV">0 GEL</div></div>
+            <div class="kpi"><div class="kpiT">Уже выдано</div><div id="employeeSalaryPaid" class="kpiV">0 GEL</div></div>
+          </div>
+
+          <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end; margin-top:12px">
+            <div style="min-width:220px">
+              <div class="label">Премия</div>
+              <input id="employeeSalaryBonus" class="input" value="0" />
+            </div>
+
+            <div style="min-width:220px">
+              <div class="label">Заранее выданная зарплата</div>
+              <input id="employeeSalaryAdvance" class="input" value="0" />
+            </div>
+
+            <div style="min-width:220px">
+              <div class="label">К выдаче сейчас</div>
+              <input id="employeeSalaryNet" class="input" readonly />
+            </div>
+
+            <div style="min-width:260px; flex:1">
+              <div class="label">Комментарий</div>
+              <input id="employeeSalaryNote" class="input" placeholder="Например: зарплата за март" />
+            </div>
+
+            <button id="employeeSalaryPayBtn" class="btn primary" style="height:44px">Выдать зарплату</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="label">История выплат</div>
+          <div class="adminTableWrap">
+            <table class="adminTable">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Сумма</th>
+                  <th>Комментарий</th>
+                </tr>
+              </thead>
+              <tbody id="employeeSalaryPaymentsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="divider"></div>
 
         <div class="adminTableWrap">
@@ -251,60 +328,6 @@
             <tbody id="adminTbody"></tbody>
           </table>
         </div>
-
-        <div id="employeeShiftPanel" class="employeeShiftPanel" style="display:none">
-          <div class="divider"></div>
-          <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
-            <div style="min-width:240px">
-              <div class="label">Сотрудник</div>
-              <select id="shiftEmployeeSelect" class="input">
-                <option value="">Выберите сотрудника</option>
-              </select>
-            </div>
-            <div style="min-width:220px">
-              <div class="label">Месяц</div>
-              <input id="shiftYm" class="input" placeholder="2026-03" />
-            </div>
-            <button id="loadEmployeeShiftsBtn" class="btn primary" style="height:44px">Показать</button>
-          </div>
-
-          <div class="divider"></div>
-
-          <div id="shiftDaysWrap" class="shiftDaysWrap"></div>
-
-          <div class="payrollGrid">
-            <div class="kpi"><div class="kpiT">Смен</div><div id="salaryShiftCount" class="kpiV">—</div></div>
-            <div class="kpi"><div class="kpiT">Начислено за смены</div><div id="salaryBase" class="kpiV">—</div></div>
-            <div class="kpi"><div class="kpiT">Взято продуктами</div><div id="salaryCorporate" class="kpiV">—</div></div>
-            <div class="kpi"><div class="kpiT">Уже выдано</div><div id="salaryPaid" class="kpiV">—</div></div>
-          </div>
-
-          <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end; margin-top:12px">
-            <div style="min-width:220px">
-              <div class="label">Премия</div>
-              <input id="salaryBonus" class="input" value="0" />
-            </div>
-            <div style="min-width:220px">
-              <div class="label">К выдаче сейчас</div>
-              <input id="salaryToPay" class="input" readonly />
-            </div>
-            <div style="min-width:260px">
-              <div class="label">Комментарий</div>
-              <input id="salaryNote" class="input" placeholder="Например: зарплата за март" />
-            </div>
-            <button id="salaryPayBtn" class="btn primary" style="height:44px">Выдать зарплату</button>
-          </div>
-
-          <div class="divider"></div>
-          <div class="label">История выплат</div>
-          <div class="adminTableWrap">
-            <table class="adminTable">
-              <thead><tr><th>Дата</th><th>Сумма</th><th>Комментарий</th></tr></thead>
-              <tbody id="salaryPaymentsBody"></tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -313,7 +336,7 @@
     window.CITY_CONFIG = {
       cityKey: "batumi",
       cityName: "Батуми",
-      apiUrl: "https://script.google.com/macros/s/AKfycbw1whhXg56MQgyciIyyIT2tJhZH54-wlISETjV3dnqRK_N_7A9VwRwyhnmPmj_RX0MH/exec",
+      apiUrl: "PASTE_YOUR_WEBAPP_EXEC_URL_HERE",
       apiToken: "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2",
       employees: ["Ви","Виталий","Зура","Джули"]
     };
