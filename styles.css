@@ -8,12 +8,12 @@
   --accent:#f4b400;
   --accent2:#ffcc33;
   --danger:#d83a3a;
-  --ok:#0aa383;
 
   --radius:18px;
 }
 
 *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
 body{
   margin:0;
   background:radial-gradient(1200px 600px at 30% -10%, var(--paper2), var(--paper));
@@ -24,13 +24,17 @@ body{
 .wrap{max-width:1380px;margin:0 auto}
 
 .topbar{
-  max-width:1380px;margin:0 auto 12px auto;
+  max-width:1380px;
+  margin:0 auto 12px auto;
   border:1px solid var(--line);
   border-radius:22px;
   padding:10px 12px;
   background:rgba(255,255,255,.22);
   backdrop-filter: blur(6px);
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
 }
 
 .brand{display:flex;align-items:center;gap:12px}
@@ -45,7 +49,6 @@ body{
 .brandSub{font-size:12px;color:var(--muted)}
 .dot{opacity:.5;padding:0 6px}
 .muted{opacity:.75}
-
 .topActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 .card{
@@ -68,7 +71,13 @@ body{
 .row{display:flex}
 .label{font-size:12px;color:var(--muted);margin:0 0 6px 2px}
 .hint{font-size:12px;color:rgba(0,0,0,.62)}
-.bigText{font-size:18px;font-weight:800;margin-top:6px}
+
+.startHero{
+  font-size:30px;
+  font-weight:900;
+  line-height:1.1;
+  margin-bottom:10px;
+}
 
 .input{
   width:100%;
@@ -90,11 +99,10 @@ body{
 }
 .btn:hover{background:rgba(255,255,255,.7)}
 .btn:disabled{opacity:.55;cursor:not-allowed}
-
 .btn.primary{background:linear-gradient(180deg,var(--accent2),var(--accent));border-color:rgba(0,0,0,.18)}
 .btn.danger{background:rgba(216,58,58,.15);border-color:rgba(216,58,58,.35)}
 .btn.ghost{background:rgba(255,255,255,.35)}
-.btn.pay{flex:1; min-width:150px}
+.btn.pay{flex:1; min-width:135px}
 .btn.tab.active{box-shadow:0 0 0 3px rgba(0,0,0,.08) inset}
 
 .pill{
@@ -112,7 +120,6 @@ body{
 }
 
 .qtyBox{min-width:210px}
-
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{
   border:1px solid var(--line);
@@ -150,7 +157,7 @@ body{
 .table{width:100%}
 .thead, .trow{
   display:grid;
-  grid-template-columns: 1.7fr .7fr .7fr .7fr .3fr;
+  grid-template-columns: 1.7fr .9fr .7fr .7fr .3fr;
   gap:10px;
   align-items:center;
 }
@@ -190,13 +197,12 @@ body{
 .suggestItem.active{background:rgba(0,0,0,.06)}
 .suggestItem small{opacity:.7}
 
-/* ADMIN */
 .kpiRow{
   display:grid;
-  grid-template-columns: repeat(6, minmax(0,1fr)) 1.3fr;
+  grid-template-columns: repeat(8, minmax(0,1fr)) 1.3fr;
   gap:10px;
 }
-@media (max-width: 980px){
+@media (max-width: 1100px){
   .kpiRow{grid-template-columns: repeat(2, minmax(0,1fr))}
 }
 .kpi,.kpiWide{
@@ -208,12 +214,29 @@ body{
 .kpiT{font-size:12px;opacity:.75}
 .kpiV{font-size:18px;font-weight:900;margin-top:4px}
 
-.adminTableWrap{overflow:auto;border-radius:18px;border:1px solid rgba(0,0,0,.12)}
-.adminTable{width:100%;border-collapse:collapse;background:rgba(255,255,255,.6)}
-.adminTable th,.adminTable td{padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.08);font-size:12px;vertical-align:top}
-.adminTable th{text-align:left;position:sticky;top:0;background:rgba(255,255,255,.85)}
+.adminTableWrap{
+  overflow:auto;
+  border-radius:18px;
+  border:1px solid rgba(0,0,0,.12)
+}
+.adminTable{
+  width:100%;
+  border-collapse:collapse;
+  background:rgba(255,255,255,.6)
+}
+.adminTable th,.adminTable td{
+  padding:10px 12px;
+  border-bottom:1px solid rgba(0,0,0,.08);
+  font-size:12px;
+  vertical-align:top
+}
+.adminTable th{
+  text-align:left;
+  position:sticky;
+  top:0;
+  background:rgba(255,255,255,.85)
+}
 
-/* LOADING OVERLAY */
 .loadingOverlay{
   position:fixed;
   inset:0;
@@ -234,3 +257,31 @@ body{
 }
 .loadingText{font-weight:850}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.modalOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.26);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:10000;
+  padding:16px;
+}
+.modalCard{
+  width:min(560px, 100%);
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:20px;
+  background:#fff8dc;
+  box-shadow:0 12px 40px rgba(0,0,0,.18);
+}
+.modalTitle{
+  font-size:24px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+.modalText{
+  font-size:16px;
+  line-height:1.5;
+}
