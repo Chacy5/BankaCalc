@@ -1,6 +1,6 @@
 /**********************
  * BANKA POS (frontend)
- * Reserve + Glovo/Bolt + payment order
+ * Shift start / shift close / reserve / Glovo-Bolt
  **********************/
 (function () {
   const CFG = window.CITY_CONFIG || {};
@@ -8,8 +8,12 @@
   const API_TOKEN = String(CFG.apiToken || "");
   const EMPLOYEES = Array.isArray(CFG.employees) ? CFG.employees : ["Ви","Виталий","Зура","Джули"];
 
+  const workerName = sessionStorage.getItem("banka_worker_name") || "";
+  const shiftOpen = sessionStorage.getItem("banka_shift_open") === "1";
+
   const el = {
     cityTitle: document.getElementById("cityTitle"),
+    workerBadge: document.getElementById("workerBadge"),
     syncStatus: document.getElementById("syncStatus"),
     payModeLabel: document.getElementById("payModeLabel"),
 
@@ -19,6 +23,15 @@
     posWrap: document.getElementById("posWrap"),
     reservePanel: document.getElementById("reservePanel"),
     adminPanel: document.getElementById("adminPanel"),
+
+    startShiftModal: document.getElementById("startShiftModal"),
+    startShiftText: document.getElementById("startShiftText"),
+    startShiftReserveInput: document.getElementById("startShiftReserveInput"),
+    startShiftConfirmBtn: document.getElementById("startShiftConfirmBtn"),
+
+    closeShiftModal: document.getElementById("closeShiftModal"),
+    closeShiftText: document.getElementById("closeShiftText"),
+    closeShiftConfirmBtn: document.getElementById("closeShiftConfirmBtn"),
 
     reserveAmount: document.getElementById("reserveAmount"),
     reservePlusBtn: document.getElementById("reservePlusBtn"),
@@ -89,6 +102,7 @@
   };
 
   if (el.cityTitle) el.cityTitle.textContent = String(CFG.cityName || "Батуми");
+  if (el.workerBadge) el.workerBadge.textContent = workerName || "—";
   if (CFG.cityKey) localStorage.setItem("banka_city", String(CFG.cityKey));
 
   const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Тара","Рыба","Снеки","Мясо","Чипсы"];
@@ -234,7 +248,6 @@
   let state = null;
   let catalog = [];
   let stopSet = new Set();
-
   let reserveAmount = 0;
 
   let corporateEmployee = "";
@@ -274,6 +287,7 @@
     catalog = (st.products || []).map(normalizeProduct).sort(sortProducts);
     stopSet = new Set(st.stopIds || []);
     reserveAmount = Number(st.reserveAmount || 0);
+
     if (el.reserveAmount) el.reserveAmount.textContent = money(reserveAmount) + " GEL";
     if (el.syncStatus) el.syncStatus.textContent = "OK";
     renderCats();
@@ -695,6 +709,72 @@
     }
   }
 
+  async function handleShiftStartCheck(){
+    if (!shiftOpen) {
+      alert("Смена не открыта. Вернитесь на стартовую страницу.");
+      location.href = "./index.html";
+      return false;
+    }
+
+    try{
+      const st = await apiGet("state", {});
+      const expected = Number(st.reserveAmount || 0);
+
+      if (el.startShiftText) {
+        el.startShiftText.textContent =
+          `В резерве должно быть ${money(expected)} лари. Пересчитайте резерв и введите сумму в резерве.`;
+      }
+      if (el.startShiftReserveInput) {
+        el.startShiftReserveInput.value = String(expected);
+      }
+      if (el.startShiftModal) el.startShiftModal.style.display = "flex";
+
+      return new Promise((resolve) => {
+        const handler = async () => {
+          const actual = parseNum(el.startShiftReserveInput?.value);
+          if (!Number.isFinite(actual) || actual < 0) {
+            alert("Введите корректную сумму.");
+            return;
+          }
+
+          try{
+            setLoading(true, "Проверяю резерв…");
+
+            const diff = Math.round((actual - expected) * 100) / 100;
+
+            if (diff > 0) {
+              await apiPost({
+                path: "reserveAdd",
+                amount: diff,
+                reason: `Корректировка при открытии смены (${workerName || "без имени"})`
+              });
+            } else if (diff < 0) {
+              await apiPost({
+                path: "reserveSubtract",
+                amount: Math.abs(diff),
+                reason: `Корректировка при открытии смены (${workerName || "без имени"})`
+              });
+            }
+
+            if (el.startShiftModal) el.startShiftModal.style.display = "none";
+            resolve(true);
+          } catch(err){
+            alert("Ошибка проверки резерва: " + err);
+          } finally{
+            setLoading(false);
+          }
+        };
+
+        if (el.startShiftConfirmBtn) {
+          el.startShiftConfirmBtn.onclick = handler;
+        }
+      });
+    }catch(err){
+      alert("Ошибка открытия смены: " + err);
+      return false;
+    }
+  }
+
   function buildKegSwitchesFromServer(res){
     const switches = {};
     (res.kegUpdated||[]).forEach(k=>{
@@ -775,17 +855,29 @@
   async function closeShift(){
     try{
       const data = await apiGet("shiftSummary", { date: todayKey() });
-      alert(
-        `Смена за ${data.dayKey}\n\n` +
-        `Наличные: ${money(data.cash)} GEL\n` +
-        `TBC: ${money(data.tbc)} GEL\n` +
-        `BOG: ${money(data.bog)} GEL\n` +
-        `Glovo: ${money(data.glovo)} GEL\n` +
-        `Bolt: ${money(data.bolt)} GEL\n\n` +
-        `ИТОГО: ${money(data.total)} GEL\n` +
-        `Чеков: ${data.count}\n\n` +
-        `Резерв: ${money(data.reserveAmount || 0)} GEL`
-      );
+
+      if (el.closeShiftText) {
+        el.closeShiftText.innerHTML =
+          `Смена за <b>${esc(data.dayKey)}</b><br><br>` +
+          `Наличные: <b>${money(data.cash)} GEL</b><br>` +
+          `TBC: <b>${money(data.tbc)} GEL</b><br>` +
+          `BOG: <b>${money(data.bog)} GEL</b><br>` +
+          `Glovo: <b>${money(data.glovo)} GEL</b><br>` +
+          `Bolt: <b>${money(data.bolt)} GEL</b><br><br>` +
+          `ИТОГО: <b>${money(data.total)} GEL</b><br>` +
+          `Чеков: <b>${data.count}</b><br><br>` +
+          `Резерв: <b>${money(data.reserveAmount || 0)} GEL</b>`;
+      }
+
+      if (el.closeShiftModal) el.closeShiftModal.style.display = "flex";
+
+      if (el.closeShiftConfirmBtn) {
+        el.closeShiftConfirmBtn.onclick = () => {
+          sessionStorage.removeItem("banka_worker_name");
+          sessionStorage.removeItem("banka_shift_open");
+          location.href = "./index.html";
+        };
+      }
     }catch(err){
       alert("Ошибка: " + err);
     }
@@ -1073,12 +1165,20 @@
       alert("В batumi.html не заполнен CITY_CONFIG.apiUrl или apiToken");
       return;
     }
+
+    if (!workerName || !shiftOpen) {
+      location.href = "./index.html";
+      return;
+    }
+
     if (el.adminDate) el.adminDate.value = todayKey();
     if (el.adminYm) el.adminYm.value = thisYm();
 
     try{
       setPayment("cash");
       showScreen("pos");
+      await refreshState();
+      await handleShiftStartCheck();
       await refreshState();
     }catch(err){
       alert("Init error: " + err);
