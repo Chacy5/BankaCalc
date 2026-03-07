@@ -9,7 +9,32 @@
 <body>
   <div id="loadingOverlay" class="loadingOverlay" style="display:none">
     <div class="spinner"></div>
-    <div class="loadingText">Пробиваю чек…</div>
+    <div class="loadingText">Загрузка…</div>
+  </div>
+
+  <div id="startShiftModal" class="modalOverlay" style="display:none">
+    <div class="modalCard">
+      <div class="modalTitle">Открытие смены</div>
+      <div id="startShiftText" class="modalText">—</div>
+
+      <div class="label" style="text-align:left; margin-top:14px">Сумма в резерве по факту</div>
+      <input id="startShiftReserveInput" class="input" placeholder="Введите сумму" />
+
+      <div class="row" style="justify-content:flex-end; gap:10px; margin-top:16px">
+        <button id="startShiftConfirmBtn" class="btn primary">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="closeShiftModal" class="modalOverlay" style="display:none">
+    <div class="modalCard">
+      <div class="modalTitle">Закрытие смены</div>
+      <div id="closeShiftText" class="modalText">—</div>
+
+      <div class="row" style="justify-content:flex-end; gap:10px; margin-top:16px">
+        <button id="closeShiftConfirmBtn" class="btn primary">Проверено. Подтвердить</button>
+      </div>
+    </div>
   </div>
 
   <div class="topbar">
@@ -20,6 +45,8 @@
         <div class="brandSub">
           <span id="cityTitle">Батуми</span>
           <span class="dot">•</span>
+          <span class="muted">Работник:</span> <span id="workerBadge" class="pill">—</span>
+          <span class="dot">•</span>
           <span class="muted">Sync:</span> <span id="syncStatus" class="pill">—</span>
           <span class="dot">•</span>
           <span class="muted">Оплата:</span> <span id="payModeLabel" class="pill">cash</span>
@@ -28,7 +55,7 @@
     </div>
 
     <div class="topActions">
-      <a class="btn ghost" href="./index.html" title="Сменить город">Город</a>
+      <a class="btn ghost" href="./index.html" title="На старт">Старт</a>
       <button id="refreshBtn" class="btn ghost" title="Обновить состояние">Обновить</button>
       <button id="tabPos" class="btn tab active" data-tab="pos">Касса</button>
       <button id="tabReserve" class="btn tab" data-tab="reserve">Резерв</button>
@@ -231,7 +258,7 @@
     window.CITY_CONFIG = {
       cityKey: "batumi",
       cityName: "Батуми",
-      apiUrl: "PASTE_YOUR_WEBAPP_EXEC_URL_HERE",
+      apiUrl: "https://script.google.com/macros/s/AKfycbzISQpr-SiR2tC2YNeBNsiMSf1g0XWJOYTjej7CBemEAQr1jgrgpX3uHrNWY7IXotFT/exec",
       apiToken: "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2",
       employees: ["Ви","Виталий","Зура","Джули"]
     };
