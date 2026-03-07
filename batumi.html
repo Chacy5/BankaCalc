@@ -31,6 +31,7 @@
       <a class="btn ghost" href="./index.html" title="Сменить город">Город</a>
       <button id="refreshBtn" class="btn ghost" title="Обновить состояние">Обновить</button>
       <button id="tabPos" class="btn tab active" data-tab="pos">Касса</button>
+      <button id="tabReserve" class="btn tab" data-tab="reserve">Резерв</button>
       <button id="tabAdmin" class="btn tab" data-tab="admin">Администрирование</button>
     </div>
   </div>
@@ -128,10 +129,12 @@
 
           <div class="row payRow" style="gap:10px; flex-wrap:wrap">
             <button id="cashBtn" class="btn pay">Наличные</button>
+            <button id="corpBtn" class="btn pay">Корпоративная</button>
             <button id="tbcBtn" class="btn pay">TBC</button>
             <button id="bogBtn" class="btn pay">BOG</button>
-            <button id="deliveryBtn" class="btn pay">Доставка</button>
-            <button id="corpBtn" class="btn pay">Корпоративная</button>
+            <button id="glovoBtn" class="btn pay">Glovo</button>
+            <button id="boltBtn" class="btn pay">Bolt</button>
+            <button id="reserveBtn" class="btn pay">Резерв</button>
 
             <button id="closeShiftBtn" class="btn ghost" style="margin-left:auto">Закрытие смены</button>
           </div>
@@ -139,6 +142,20 @@
           <div class="hint" style="margin-top:10px">
             После пробития сбрасываются чек + фильтры + скидки + режим оплаты.
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="reservePanel" style="display:none">
+      <div class="card" style="max-width:760px; margin:0 auto; text-align:center; padding:28px 20px">
+        <div class="label" style="font-size:15px">Резерв</div>
+        <div id="reserveAmount" style="font-size:56px; font-weight:900; margin:12px 0 24px 0">—</div>
+        <div class="row" style="justify-content:center; gap:14px; flex-wrap:wrap">
+          <button id="reservePlusBtn" class="btn primary" style="min-width:140px; font-size:24px; padding:16px 18px">+</button>
+          <button id="reserveMinusBtn" class="btn danger" style="min-width:140px; font-size:24px; padding:16px 18px">−</button>
+        </div>
+        <div class="hint" style="margin-top:16px">
+          “+” — добавить в резерв. “−” — списать из резерва.
         </div>
       </div>
     </div>
@@ -185,10 +202,11 @@
           <div class="kpi"><div class="kpiT">Наличные</div><div id="kpiCash" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">TBC</div><div id="kpiTbc" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">BOG</div><div id="kpiBog" class="kpiV">—</div></div>
-          <div class="kpi"><div class="kpiT">Доставка</div><div id="kpiDelivery" class="kpiV">—</div></div>
-          <div class="kpi"><div class="kpiT">Корп.</div><div id="kpiCorp" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Glovo</div><div id="kpiGlovo" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Bolt</div><div id="kpiBolt" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">Итого</div><div id="kpiTotal" class="kpiV">—</div></div>
           <div class="kpi"><div class="kpiT">Чеков</div><div id="kpiCount" class="kpiV">—</div></div>
+          <div class="kpi"><div class="kpiT">Резерв</div><div id="kpiReserve" class="kpiV">—</div></div>
           <div class="kpiWide">
             <div class="kpiT">Период</div>
             <div id="kpiPeriod" class="kpiV">—</div>
@@ -213,7 +231,7 @@
     window.CITY_CONFIG = {
       cityKey: "batumi",
       cityName: "Батуми",
-      apiUrl: "https://script.google.com/macros/s/AKfycbx8F1oddPdC0kJ8_HlRCKP6DETjJL4TGpITQsegiWVSniWscjLmNXpMHUQhUAlyzMaV/exec",
+      apiUrl: "PASTE_YOUR_WEBAPP_EXEC_URL_HERE",
       apiToken: "p0s_9uF2kQ7mX1aV3zT8rH6nL4cY0sD5wB2",
       employees: ["Ви","Виталий","Зура","Джули"]
     };
