@@ -1,6 +1,6 @@
 /**********************
  * BANKA POS (frontend)
- * Root files version: pos.js (full)
+ * Root files version: pos.js (TBC/BOG + cart +/-)
  * Requires: window.CITY_CONFIG
  **********************/
 (function () {
@@ -9,7 +9,6 @@
   const API_TOKEN = String(CFG.apiToken || "");
   const EMPLOYEES = Array.isArray(CFG.employees) ? CFG.employees : ["Ви","Виталий","Зура","Джули"];
 
-  // ---- UI els ----
   const el = {
     cityTitle: document.getElementById("cityTitle"),
     syncStatus: document.getElementById("syncStatus"),
@@ -23,7 +22,6 @@
     search: document.getElementById("search"),
     suggest: document.getElementById("suggest"),
     qtyAdd: document.getElementById("qtyAdd"),
-    qtyAddWrap: document.getElementById("qtyAddWrap"),
     qtyMinus: document.getElementById("qtyMinus"),
     qtyPlus: document.getElementById("qtyPlus"),
     addBtn: document.getElementById("addBtn"),
@@ -37,7 +35,8 @@
     empDiscountPill: document.getElementById("empDiscountPill"),
 
     cashBtn: document.getElementById("cashBtn"),
-    cardBtn: document.getElementById("cardBtn"),
+    tbcBtn: document.getElementById("tbcBtn"),
+    bogBtn: document.getElementById("bogBtn"),
     deliveryBtn: document.getElementById("deliveryBtn"),
     corpBtn: document.getElementById("corpBtn"),
 
@@ -52,7 +51,6 @@
     catBar: document.getElementById("catBar"),
     subBar: document.getElementById("subBar"),
 
-    // ADMIN
     adminStatus: document.getElementById("adminStatus"),
     adminDate: document.getElementById("adminDate"),
     adminYm: document.getElementById("adminYm"),
@@ -64,7 +62,8 @@
     adminLogoutBtn: document.getElementById("adminLogoutBtn"),
 
     kpiCash: document.getElementById("kpiCash"),
-    kpiCard: document.getElementById("kpiCard"),
+    kpiTbc: document.getElementById("kpiTbc"),
+    kpiBog: document.getElementById("kpiBog"),
     kpiDelivery: document.getElementById("kpiDelivery"),
     kpiCorp: document.getElementById("kpiCorp"),
     kpiTotal: document.getElementById("kpiTotal"),
@@ -84,14 +83,9 @@
   if (el.cityTitle) el.cityTitle.textContent = String(CFG.cityName || "Батуми");
   if (CFG.cityKey) localStorage.setItem("banka_city", String(CFG.cityKey));
 
-  // ---- constants / filters ----
-  // Главные категории UI
   const MAIN_CATS = ["Все","Краны","Бутылки/Банки","Тара","Рыба","Снеки","Мясо","Чипсы"];
-
-  // Подкатегории (они у тебя лежат в колонке Products.cat)
   const BOTTLE_SUB = ["Медовухи","Безалкогольные","IPA/APA","Классика","Темное","Пшеничка","Sour/Gose/Cider"];
 
-  // ---- helpers ----
   function money(n){
     const x = Math.round((Number(n)||0)*100)/100;
     return x.toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -137,32 +131,30 @@
     return String(a.name||"").localeCompare(String(b.name||""),"ru");
   }
 
-  // ---- loader ----
   function setLoading(on, text){
     if (!el.loadingOverlay) return;
     el.loadingOverlay.style.display = on ? "flex" : "none";
     const t = el.loadingOverlay.querySelector(".loadingText");
     if (t) t.textContent = text || (on ? "Загрузка…" : "");
     const dis = !!on;
-    [el.cashBtn, el.cardBtn, el.deliveryBtn, el.corpBtn].forEach(b=>{
+    [el.cashBtn, el.tbcBtn, el.bogBtn, el.deliveryBtn, el.corpBtn].forEach(b=>{
       if (b) b.disabled = dis;
     });
   }
 
-  // ---- API ----
   function diagnoseFailedFetch(){
     return [
-      "Не удалось подключиться к Google Apps Script (сетевой сбой). Проверь:",
-      "1) В batumi.html CITY_CONFIG.apiUrl — это Web App URL и он заканчивается на /exec",
-      "2) Apps Script -> Deploy -> Web app: доступ = Anyone (или Anyone with link), Execute as = Me",
-      "3) Открой вручную в браузере:",
-      "   <apiUrl>?path=state&token=<token> — должен вернуться JSON ok:true",
+      "Не удалось подключиться к Google Apps Script.",
+      "Проверь:",
+      "1) В batumi.html CITY_CONFIG.apiUrl должен быть Web App URL и заканчиваться на /exec",
+      "2) Apps Script -> Deploy -> Web app: access = Anyone / Anyone with link, Execute as = Me",
+      "3) Открой вручную:",
+      "   <apiUrl>?path=state&token=<token>"
     ].join("\n");
   }
 
   function isNetworkFail(err){
     const s = String(err || "");
-    // Chrome: Failed to fetch, Firefox: Load failed
     return s.includes("Failed to fetch") || s.includes("Load failed") || s.includes("NetworkError");
   }
 
@@ -181,9 +173,6 @@
 
   async function apiPost(body){
     const qs = new URLSearchParams({ token: API_TOKEN });
-
-    // ВАЖНО: text/plain вместо application/json → меньше CORS/OPTIONS проблем на GitHub Pages
-    // Code.gs всё равно читает e.postData.contents и JSON.parse — это работает.
     try{
       const res = await fetch(`${API_URL}?${qs.toString()}`,{
         method:"POST",
@@ -191,7 +180,6 @@
         body: JSON.stringify(body),
         credentials: "omit",
       });
-
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "API error");
       return data;
@@ -215,20 +203,15 @@
     }
   }
 
-  // ---- Category canonicalization ----
-  // ВАЖНО: В твоей таблице Products.cat для бутылок/банок = подкатегория (IPA/APA, Темное, ...)
-  // Поэтому мы делаем виртуальную "главную" категорию "Бутылки/Банки", а подкатегорию кладём в p.subcat
   function canonicalCat(raw) {
     const s = String(raw || "").trim();
 
-    // если в таблице cat = одна из подкатегорий бутылок/банок
     if (BOTTLE_SUB.includes(s)) return "Бутылки/Банки";
 
     const n = normalize(s);
 
     if (n.includes("кран")) return "Краны";
 
-    // Тара отдельно (ориентируемся только на cat из таблицы)
     if (n.includes("тара") || n.includes("пэт") || n.includes("круж") || n.includes("стак") || (n.includes("бутылка") && n.includes("пуст")))
       return "Тара";
 
@@ -240,7 +223,6 @@
     return s || "Другое";
   }
 
-  // ---- state ----
   let state = null;
   let catalog = [];
   let stopSet = new Set();
@@ -255,15 +237,12 @@
   let catFilter = "Все";
   let bottleSub = "IPA/APA";
 
-  // suggest
   let suggestItems = [];
   let activeSuggestIndex = -1;
 
   function normalizeProduct(p){
     const rawCat = String(p.cat || "").trim();
     const cat = canonicalCat(rawCat);
-
-    // subcat нужен ТОЛЬКО для "Бутылки/Банки"
     const subcat = (cat === "Бутылки/Банки" && BOTTLE_SUB.includes(rawCat)) ? rawCat : "";
 
     return {
@@ -272,9 +251,9 @@
       cat,
       subcat,
       type: p.type || "unit",
+      track: p.track || "count",
       price: Number(p.price||0),
       deliveryPrice: (p.deliveryPrice==="" || p.deliveryPrice==null) ? "" : Number(p.deliveryPrice||0),
-      track: p.track || "count",
       kegSizeL: Number(p.kegSizeL||0),
       kegsSpare: Number(p.kegsSpare||0),
     };
@@ -356,6 +335,7 @@
     if (!Number.isFinite(v) || v<=0) return 1;
     return v;
   }
+
   function setQtyInput(v){
     if (el.qtyAdd) el.qtyAdd.value = String(v);
   }
@@ -363,6 +343,10 @@
   function findProduct(id){
     const nid = normalize(id);
     return catalog.find(x=>x.id===nid) || null;
+  }
+
+  function qtyStepForTrack(track){
+    return String(track || "").toLowerCase() === "keg" ? 0.5 : 1;
   }
 
   function addToCart(productId){
@@ -403,7 +387,6 @@
     renderCart();
   }
 
-  // delivery price fix
   function unitPriceFor(item){
     if (paymentMethod === "delivery"){
       const dp = item.deliveryPrice;
@@ -417,9 +400,11 @@
   function lineSum(item){
     return Math.round(unitPriceFor(item) * Number(item.qtyBase||0) * 100) / 100;
   }
+
   function grossTotal(){
     return Math.round(cart.reduce((s,it)=>s+lineSum(it),0)*100)/100;
   }
+
   function discountAmount(){
     const gross = grossTotal();
     const cust = Math.max(0, Math.min(100, Number(discountPercent||0)));
@@ -427,6 +412,7 @@
     const totalDisc = Math.max(cust, emp);
     return Math.round(gross * (totalDisc/100) * 100) / 100;
   }
+
   function netTotal(){
     return Math.round((grossTotal() - discountAmount())*100)/100;
   }
@@ -444,13 +430,18 @@
     el.cartBody.innerHTML = cart.map((it,idx)=>{
       const up = unitPriceFor(it);
       const sum = lineSum(it);
+
       return `<div class="trow" data-i="${idx}">
         <div>
           <div style="font-weight:850">${esc(it.name)}</div>
           <div style="font-size:12px;opacity:.7">${esc(it.cat)}${it.subcat ? " • " + esc(it.subcat) : ""} • ${paymentMethod==="delivery" ? "доставка" : "обычно"}</div>
         </div>
         <div class="right">
-          <input class="qtyInp" value="${esc(String(it.qtyBase))}" inputmode="decimal" />
+          <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end">
+            <button class="btn ghost lineMinusBtn" style="padding:6px 10px">−</button>
+            <input class="qtyInp" value="${esc(String(it.qtyBase))}" inputmode="decimal" style="width:70px" />
+            <button class="btn ghost linePlusBtn" style="padding:6px 10px">+</button>
+          </div>
         </div>
         <div class="right">${money(up)}</div>
         <div class="right"><b>${money(sum)}</b></div>
@@ -460,15 +451,34 @@
 
     el.cartBody.querySelectorAll(".trow").forEach(row=>{
       const idx = Number(row.dataset.i);
+      const item = cart[idx];
+      const step = qtyStepForTrack(item.track);
 
       const qtyInp = row.querySelector(".qtyInp");
       qtyInp.addEventListener("change", ()=>{
         const v = parseNum(qtyInp.value);
         if (!Number.isFinite(v) || v<=0){
-          qtyInp.value = String(cart[idx]?.qtyBase || 1);
+          qtyInp.value = String(cart[idx]?.qtyBase || step);
           return;
         }
         cart[idx].qtyBase = Math.round(v*100)/100;
+        renderCart();
+      });
+
+      const minusBtn = row.querySelector(".lineMinusBtn");
+      minusBtn.addEventListener("click", ()=>{
+        const next = Math.round((cart[idx].qtyBase - step)*100)/100;
+        if (next <= 0){
+          cart.splice(idx,1);
+        } else {
+          cart[idx].qtyBase = next;
+        }
+        renderCart();
+      });
+
+      const plusBtn = row.querySelector(".linePlusBtn");
+      plusBtn.addEventListener("click", ()=>{
+        cart[idx].qtyBase = Math.round((cart[idx].qtyBase + step)*100)/100;
         renderCart();
       });
 
@@ -488,7 +498,6 @@
     el.catBar.querySelectorAll(".chip").forEach(ch=>{
       ch.addEventListener("click", ()=>{
         catFilter = ch.dataset.c;
-
         renderSubcats();
         renderQuickGrid();
       });
@@ -498,7 +507,6 @@
   function renderSubcats(){
     if (!el.subBar) return;
 
-    // Подкатегории показываем ТОЛЬКО когда выбраны "Бутылки/Банки"
     if (catFilter !== "Бутылки/Банки"){
       el.subBar.innerHTML = "";
       el.subBar.style.display = "none";
@@ -520,7 +528,6 @@
   function passesFilters(p){
     if (catFilter !== "Все" && p.cat !== catFilter) return false;
 
-    // Подкатегории применяем ТОЛЬКО для "Бутылки/Банки" и сравниваем по p.subcat (это cat из таблицы)
     if (catFilter === "Бутылки/Банки"){
       if (!p.subcat) return false;
       if (p.subcat !== bottleSub) return false;
@@ -691,7 +698,8 @@
       alert(
         `Смена за ${data.dayKey}\n\n` +
         `Наличные: ${money(data.cash)} GEL\n` +
-        `Карта: ${money(data.card)} GEL\n` +
+        `TBC: ${money(data.tbc)} GEL\n` +
+        `BOG: ${money(data.bog)} GEL\n` +
         `Доставка: ${money(data.delivery)} GEL\n` +
         `Корпоративная: ${money(data.corporate)} GEL\n\n` +
         `ИТОГО: ${money(data.total)} GEL\n` +
@@ -702,7 +710,6 @@
     }
   }
 
-  // ---- ADMIN ----
   let adminCurrentRows = [];
   let adminCurrentCols = [];
 
@@ -733,7 +740,8 @@
 
     if (data && data.byMethod){
       if (el.kpiCash) el.kpiCash.textContent = money(data.byMethod.cash);
-      if (el.kpiCard) el.kpiCard.textContent = money(data.byMethod.card);
+      if (el.kpiTbc) el.kpiTbc.textContent = money(data.byMethod.tbc);
+      if (el.kpiBog) el.kpiBog.textContent = money(data.byMethod.bog);
       if (el.kpiDelivery) el.kpiDelivery.textContent = money(data.byMethod.delivery);
       if (el.kpiCorp) el.kpiCorp.textContent = money(data.byMethod.corporate);
       if (el.kpiTotal) el.kpiTotal.textContent = money(data.byMethod.total);
@@ -743,7 +751,8 @@
 
     if (data){
       if (el.kpiCash) el.kpiCash.textContent = money(data.cash||0);
-      if (el.kpiCard) el.kpiCard.textContent = money(data.card||0);
+      if (el.kpiTbc) el.kpiTbc.textContent = money(data.tbc||0);
+      if (el.kpiBog) el.kpiBog.textContent = money(data.bog||0);
       if (el.kpiDelivery) el.kpiDelivery.textContent = money(data.delivery||0);
       if (el.kpiCorp) el.kpiCorp.textContent = money(data.corporate||0);
       if (el.kpiTotal) el.kpiTotal.textContent = money(data.total||0);
@@ -804,7 +813,7 @@
       const date = el.adminDate?.value || todayKey();
       const data = await apiGetAdmin("admin/day", { date });
       setKpi("day", data, date);
-      renderAdminTable(["dayKey","cash","card","delivery","corporate","total","count"], [data]);
+      renderAdminTable(["dayKey","cash","tbc","bog","delivery","corporate","total","count"], [data]);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
       if (el.adminStatus) el.adminStatus.textContent = "ERR";
@@ -818,7 +827,7 @@
       const ym = el.adminYm?.value || thisYm();
       const data = await apiGetAdmin("admin/month", { ym });
       setKpi("month", data, ym);
-      renderAdminTable(["dayKey","total","count"], data.daily || []);
+      renderAdminTable(["dayKey","total","count","cash","tbc","bog","delivery","corporate"], data.daily || []);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
       if (el.adminStatus) el.adminStatus.textContent = "ERR";
@@ -831,7 +840,7 @@
       if (el.adminStatus) el.adminStatus.textContent = "…";
       const ym = el.adminYm?.value || thisYm();
       const data = await apiGetAdmin("admin/corporateByEmployeeMonth", { ym });
-      setKpi("corp-by-emp", { byMethod:{ cash:0,card:0,delivery:0,corporate:0,total:0,count:0 } }, ym);
+      setKpi("corp-by-emp", { byMethod:{ cash:0,tbc:0,bog:0,delivery:0,corporate:0,total:0,count:0 } }, ym);
       renderAdminTable(["employee","total"], data.employees || []);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
@@ -893,7 +902,6 @@
     }
   }
 
-  // ---- EVENTS ----
   document.querySelectorAll(".tab").forEach(b=>{
     b.addEventListener("click", ()=>setTab(b.dataset.tab));
   });
@@ -935,7 +943,8 @@
   });
 
   if (el.cashBtn) el.cashBtn.addEventListener("click", async ()=>{ setPayment("cash"); await pay(); });
-  if (el.cardBtn) el.cardBtn.addEventListener("click", async ()=>{ setPayment("card"); await pay(); });
+  if (el.tbcBtn) el.tbcBtn.addEventListener("click", async ()=>{ setPayment("tbc"); await pay(); });
+  if (el.bogBtn) el.bogBtn.addEventListener("click", async ()=>{ setPayment("bog"); await pay(); });
   if (el.deliveryBtn) el.deliveryBtn.addEventListener("click", async ()=>{ setPayment("delivery"); await pay(); });
   if (el.corpBtn) el.corpBtn.addEventListener("click", corporatePayFlow);
 
@@ -962,7 +971,6 @@
   if (el.adminSearch) el.adminSearch.addEventListener("input", ()=>filterAdminTable(el.adminSearch.value));
   if (el.adminExportBtn) el.adminExportBtn.addEventListener("click", exportAdminCsv);
 
-  // ---- INIT ----
   (async function init(){
     if (!API_URL || !API_TOKEN){
       alert("В batumi.html не заполнен CITY_CONFIG.apiUrl или apiToken");
