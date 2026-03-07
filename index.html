@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BANKA POS — выбор города</title>
+  <title>BANKA POS — открытие смены</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -12,15 +12,25 @@
       <div class="logoBox">B</div>
       <div>
         <div class="brandTitle">BANKA POS</div>
-        <div class="brandSub">Выберите город</div>
+        <div class="brandSub">Открытие смены</div>
       </div>
     </div>
   </div>
 
   <div class="wrap" style="max-width:900px">
     <div class="card">
-      <div class="row" style="align-items:flex-end; gap:12px; flex-wrap:wrap">
-        <div style="min-width:260px; flex:1">
+      <div class="startHero">Добро пожаловать в кассу BANKA</div>
+      <div class="hint" style="margin-bottom:18px">
+        Введите имя работника, выберите город и откройте смену.
+      </div>
+
+      <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
+        <div style="flex:1; min-width:260px">
+          <div class="label">Имя работника</div>
+          <input id="workerName" class="input" placeholder="Например: Ви" />
+        </div>
+
+        <div style="flex:1; min-width:260px">
           <div class="label">Город</div>
           <select id="citySelect" class="input">
             <option value="batumi">Батуми</option>
@@ -28,36 +38,56 @@
             <option value="brest">Брест</option>
           </select>
         </div>
-        <button id="goBtn" class="btn primary" style="height:44px">Открыть</button>
+
+        <button id="openShiftBtn" class="btn primary" style="height:44px">Открыть смену</button>
       </div>
 
-      <div class="hint" style="margin-top:10px">
-        Последний выбранный город запоминается в браузере.
+      <div class="divider"></div>
+
+      <div class="hint">
+        Имя работника сохранится до подтверждения закрытия смены.
       </div>
     </div>
   </div>
 
   <script>
-    const map = {
+    const cityMap = {
       batumi: "./batumi.html",
       minsk: "./minsk.html",
-      brest: "./brest.html",
+      brest: "./brest.html"
     };
 
-    const sel = document.getElementById("citySelect");
-    const goBtn = document.getElementById("goBtn");
+    const nameInp = document.getElementById("workerName");
+    const citySel = document.getElementById("citySelect");
+    const openBtn = document.getElementById("openShiftBtn");
 
-    const last = localStorage.getItem("banka_city") || "batumi";
-    if (map[last]) sel.value = last;
+    const lastCity = localStorage.getItem("banka_city") || "batumi";
+    const lastWorker = sessionStorage.getItem("banka_worker_name") || "";
 
-    goBtn.addEventListener("click", () => {
-      const v = sel.value;
-      localStorage.setItem("banka_city", v);
-      location.href = map[v] || map.batumi;
-    });
+    if (cityMap[lastCity]) citySel.value = lastCity;
+    if (lastWorker) nameInp.value = lastWorker;
 
-    sel.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") goBtn.click();
+    function openShift() {
+      const worker = String(nameInp.value || "").trim();
+      const city = citySel.value;
+
+      if (!worker) {
+        alert("Введите имя работника.");
+        nameInp.focus();
+        return;
+      }
+
+      sessionStorage.setItem("banka_worker_name", worker);
+      sessionStorage.setItem("banka_shift_open", "1");
+      localStorage.setItem("banka_city", city);
+
+      location.href = cityMap[city] || "./batumi.html";
+    }
+
+    openBtn.addEventListener("click", openShift);
+
+    nameInp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") openShift();
     });
   </script>
 </body>
