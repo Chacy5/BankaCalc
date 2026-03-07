@@ -1,6 +1,6 @@
 /**********************
  * BANKA POS (frontend)
- * Shift start / shift close / reserve / Glovo-Bolt
+ * Shift start / shift close / reserve / Glovo-Bolt / employee salary
  **********************/
 (function () {
   const CFG = window.CITY_CONFIG || {};
@@ -79,7 +79,7 @@
     adminEmpBtn: document.getElementById("adminEmpBtn"),
     adminInvBtn: document.getElementById("adminInvBtn"),
     adminStopsBtn: document.getElementById("adminStopsBtn"),
-    adminShiftsBtn: document.getElementById("adminShiftsBtn"),
+    adminEmployeeShiftsBtn: document.getElementById("adminEmployeeShiftsBtn"),
     adminLogoutBtn: document.getElementById("adminLogoutBtn"),
 
     kpiCash: document.getElementById("kpiCash"),
@@ -98,23 +98,29 @@
     adminThead: document.getElementById("adminThead"),
     adminTbody: document.getElementById("adminTbody"),
 
-    employeeShiftPanel: document.getElementById("employeeShiftPanel"),
-    shiftEmployeeSelect: document.getElementById("shiftEmployeeSelect"),
-    shiftYm: document.getElementById("shiftYm"),
-    loadEmployeeShiftsBtn: document.getElementById("loadEmployeeShiftsBtn"),
-    shiftDaysWrap: document.getElementById("shiftDaysWrap"),
-    salaryShiftCount: document.getElementById("salaryShiftCount"),
-    salaryBase: document.getElementById("salaryBase"),
-    salaryCorporate: document.getElementById("salaryCorporate"),
-    salaryPaid: document.getElementById("salaryPaid"),
-    salaryBonus: document.getElementById("salaryBonus"),
-    salaryToPay: document.getElementById("salaryToPay"),
-    salaryNote: document.getElementById("salaryNote"),
-    salaryPayBtn: document.getElementById("salaryPayBtn"),
-    salaryPaymentsBody: document.getElementById("salaryPaymentsBody"),
-
     loadingOverlay: document.getElementById("loadingOverlay"),
     quickGrid: document.getElementById("quickGrid"),
+
+    employeeSalaryPanel: document.getElementById("employeeSalaryPanel"),
+    employeeSalaryEmployee: document.getElementById("employeeSalaryEmployee"),
+    employeeSalaryYm: document.getElementById("employeeSalaryYm"),
+    employeeSalaryShowBtn: document.getElementById("employeeSalaryShowBtn"),
+
+    employeeSalaryEmpty: document.getElementById("employeeSalaryEmpty"),
+    employeeSalaryCalendar: document.getElementById("employeeSalaryCalendar"),
+
+    employeeSalaryCount: document.getElementById("employeeSalaryCount"),
+    employeeSalaryAccrued: document.getElementById("employeeSalaryAccrued"),
+    employeeSalaryCorporate: document.getElementById("employeeSalaryCorporate"),
+    employeeSalaryPaid: document.getElementById("employeeSalaryPaid"),
+
+    employeeSalaryBonus: document.getElementById("employeeSalaryBonus"),
+    employeeSalaryAdvance: document.getElementById("employeeSalaryAdvance"),
+    employeeSalaryNet: document.getElementById("employeeSalaryNet"),
+    employeeSalaryNote: document.getElementById("employeeSalaryNote"),
+    employeeSalaryPayBtn: document.getElementById("employeeSalaryPayBtn"),
+
+    employeeSalaryPaymentsBody: document.getElementById("employeeSalaryPaymentsBody"),
   };
 
   if (el.cityTitle) el.cityTitle.textContent = String(CFG.cityName || "Батуми");
@@ -152,10 +158,6 @@
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,"0");
     return `${yyyy}-${mm}`;
-  }
-  function formatDateRu(iso){
-    const d = new Date(iso + "T00:00:00");
-    return d.toLocaleDateString("ru-RU", { day:"numeric", month:"long" });
   }
   function tapNumber(name){
     const m = String(name||"").match(/кран\s*(\d+)/i);
@@ -282,6 +284,8 @@
 
   let suggestItems = [];
   let activeSuggestIndex = -1;
+
+  let currentEmployeeSalaryData = null;
 
   function normalizeProduct(p){
     const rawCat = String(p.cat || "").trim();
@@ -737,6 +741,11 @@
     }
 
     try{
+      await apiPost({
+        path: "openShift",
+        employee: workerName
+      });
+
       const st = await apiGet("state", {});
       const expected = Number(st.reserveAmount || 0);
 
@@ -855,7 +864,7 @@
         alert(lines.join("\n"));
       }
 
-      applyStateToUI(res.state);
+      await refreshState();
 
       const msg = (paymentMethod==="corporate")
         ? `Корпоративный — ${corporateEmployee}: ${money(net)} GEL`
@@ -877,17 +886,6 @@
       const data = await apiGet("shiftSummary", { date: todayKey() });
 
       if (el.closeShiftText) {
-        const reserveOps = Array.isArray(data.reserveOps) ? data.reserveOps : [];
-        const reserveBlock = [
-          `<br><br>Резерв на начало смены: <b>${money(data.reserveStart || 0)} GEL</b>`
-        ].concat(
-          reserveOps.map(op => {
-            const sign = String(op.type || "").toLowerCase() === "add" ? "+" : "−";
-            return `<br>${sign}${money(op.amount || 0)} GEL — ${esc(String(op.reason || ""))}`;
-          })
-        ).concat([
-          `<br><br>Резерв на закрытие смены: <b>${money(data.reserveEnd != null ? data.reserveEnd : (data.reserveAmount || 0))} GEL</b>`
-        ]).join("");
         el.closeShiftText.innerHTML =
           `Смена за <b>${esc(data.dayKey)}</b><br><br>` +
           `Наличные: <b>${money(data.cash)} GEL</b><br>` +
@@ -896,7 +894,8 @@
           `Glovo: <b>${money(data.glovo)} GEL</b><br>` +
           `Bolt: <b>${money(data.bolt)} GEL</b><br><br>` +
           `ИТОГО: <b>${money(data.total)} GEL</b><br>` +
-          `Чеков: <b>${data.count}</b>` + reserveBlock;
+          `Чеков: <b>${data.count}</b><br><br>` +
+          `Резерв: <b>${money(data.reserveAmount || 0)} GEL</b>`;
       }
 
       if (el.closeShiftModal) el.closeShiftModal.style.display = "flex";
@@ -915,7 +914,6 @@
 
   let adminCurrentRows = [];
   let adminCurrentCols = [];
-  let currentEmployeeSalary = null;
 
   function showScreen(mode){
     if (el.posWrap) el.posWrap.style.display = mode === "pos" ? "" : "none";
@@ -1081,7 +1079,6 @@
     try{
       if (el.adminStatus) el.adminStatus.textContent = "…";
       const data = await apiGetAdmin("admin/stops", {});
-      if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "none";
       renderAdminTable(["id","name","cat","track"], data.stops || []);
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
@@ -1090,87 +1087,148 @@
     }
   }
 
-  function weekdayClassFromIso(iso){
-    const d = new Date(iso + "T00:00:00");
-    const day = d.getDay();
-    return (day >= 1 && day <= 4) ? "weekday" : "weekend";
-  }
+  function buildMiniCalendar(shifts, ym){
+    const [year, month] = ym.split("-").map(Number);
+    const first = new Date(year, month - 1, 1);
+    const last = new Date(year, month, 0);
 
-  function renderEmployeeSalaryPanel(data){
-    currentEmployeeSalary = data;
-    if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "block";
-    if (el.shiftDaysWrap){
-      const shifts = data.shifts || [];
-      el.shiftDaysWrap.innerHTML = shifts.length
-        ? shifts.map(iso => `<div class="shiftDayChip ${weekdayClassFromIso(iso)}">${esc(formatDateRu(iso))}</div>`).join("")
-        : `<div class="hint">За выбранный месяц смен нет.</div>`;
+    const startOffset = (first.getDay() + 6) % 7; // Monday first
+    const daysInMonth = last.getDate();
+
+    const shiftMap = new Map();
+    (shifts || []).forEach(s => shiftMap.set(s.dayKey, s));
+
+    let html = `<div class="miniCalHead">
+      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+    </div><div class="miniCalGrid">`;
+
+    for(let i=0;i<startOffset;i++){
+      html += `<div class="miniCalDay empty"></div>`;
     }
-    if (el.salaryShiftCount) el.salaryShiftCount.textContent = String((data.shifts || []).length);
-    if (el.salaryBase) el.salaryBase.textContent = money(data.salary || 0) + " GEL";
-    if (el.salaryCorporate) el.salaryCorporate.textContent = money(data.corporate || 0) + " GEL";
-    if (el.salaryPaid) el.salaryPaid.textContent = money(data.paid || 0) + " GEL";
-    if (el.salaryBonus && !el.salaryBonus.value) el.salaryBonus.value = "0";
 
-    if (el.salaryPaymentsBody){
-      const payments = data.payments || [];
-      el.salaryPaymentsBody.innerHTML = payments.length
-        ? payments.map(p => `<tr><td>${esc(String(p.date || ""))}</td><td>${esc(money(p.amount || 0))}</td><td>${esc(String(p.note || ""))}</td></tr>`).join("")
-        : `<tr><td colspan="3">Выплат пока нет</td></tr>`;
+    for(let day=1; day<=daysInMonth; day++){
+      const dd = String(day).padStart(2,"0");
+      const mm = String(month).padStart(2,"0");
+      const dayKey = `${year}-${mm}-${dd}`;
+
+      const jsDate = new Date(`${dayKey}T00:00:00`);
+      const weekday = jsDate.getDay(); // 0=вс ... 6=сб
+
+      const isWeekend = weekday === 5 || weekday === 6 || weekday === 0; // пт/сб/вс
+      const shift = shiftMap.get(dayKey);
+
+      let cls = "miniCalDay";
+      if(isWeekend) cls += " weekend";
+      if(shift){
+        cls += shift.color === "green" ? " worked-green" : " worked-blue";
+      }
+
+      html += `<div class="${cls}" title="${dayKey}${shift ? ` • ${shift.rate} GEL` : ""}">
+        <span>${day}</span>
+      </div>`;
     }
-    recalcSalaryToPay();
-  }
 
-  function recalcSalaryToPay(){
-    if (!currentEmployeeSalary || !el.salaryToPay) return;
-    const bonus = parseNum(el.salaryBonus?.value || "0");
-    const base = Number(currentEmployeeSalary.salary || 0);
-    const corporate = Number(currentEmployeeSalary.corporate || 0);
-    const paid = Number(currentEmployeeSalary.paid || 0);
-    const total = Math.max(0, Math.round((base + (Number.isFinite(bonus) ? bonus : 0) - corporate - paid) * 100) / 100);
-    el.salaryToPay.value = String(total);
+    html += `</div>`;
+    return html;
   }
 
   async function adminEmployeeShifts(){
     try{
       if (el.adminStatus) el.adminStatus.textContent = "…";
-      const employee = String(el.shiftEmployeeSelect?.value || "").trim();
-      const ym = String(el.shiftYm?.value || thisYm()).trim();
-      if (!employee) {
-        alert("Выберите сотрудника.");
+
+      const employee = String(el.employeeSalaryEmployee?.value || "").trim();
+      const ym = String(el.employeeSalaryYm?.value || thisYm()).trim();
+
+      if(!employee){
+        alert("Выбери сотрудника.");
         return;
       }
-      const data = await apiGetAdmin("admin/employeeShifts", { employee, ym });
-      renderAdminTable(["dayKey"], []);
-      renderEmployeeSalaryPanel(data);
+
+      const data = await apiGetAdmin("admin/employeeSalary", { employee, ym });
+      currentEmployeeSalaryData = data;
+
+      if (el.employeeSalaryPanel) el.employeeSalaryPanel.style.display = "";
+
+      if (el.employeeSalaryEmpty) {
+        el.employeeSalaryEmpty.style.display = data.shiftsCount ? "none" : "";
+        el.employeeSalaryEmpty.textContent = data.shiftsCount ? "" : "За выбранный месяц смен нет.";
+      }
+
+      if (el.employeeSalaryCalendar) {
+        el.employeeSalaryCalendar.innerHTML = buildMiniCalendar(data.shifts || [], ym);
+      }
+
+      if (el.employeeSalaryCount) el.employeeSalaryCount.textContent = String(data.shiftsCount || 0);
+      if (el.employeeSalaryAccrued) el.employeeSalaryAccrued.textContent = `${money(data.salaryAccrued || 0)} GEL`;
+      if (el.employeeSalaryCorporate) el.employeeSalaryCorporate.textContent = `${money(data.corporateTaken || 0)} GEL`;
+      if (el.employeeSalaryPaid) el.employeeSalaryPaid.textContent = `${money(data.alreadyPaid || 0)} GEL`;
+
+      const bonus = parseNum(el.employeeSalaryBonus?.value) || 0;
+      const advance = parseNum(el.employeeSalaryAdvance?.value) || 0;
+
+      const net = Math.round(((data.salaryAccrued || 0) + bonus - advance - (data.corporateTaken || 0) - (data.alreadyPaid || 0)) * 100) / 100;
+      if (el.employeeSalaryNet) el.employeeSalaryNet.value = String(net);
+
+      if (el.employeeSalaryPaymentsBody) {
+        el.employeeSalaryPaymentsBody.innerHTML = (data.payments || []).map(p => `
+          <tr>
+            <td>${esc(p.dayKey)}</td>
+            <td>${money(p.amount)}</td>
+            <td>${esc(p.note || "")}</td>
+          </tr>
+        `).join("");
+      }
+
       if (el.adminStatus) el.adminStatus.textContent = "OK";
     }catch(err){
       if (el.adminStatus) el.adminStatus.textContent = "ERR";
-      alert("Admin error: " + err);
+      alert("Ошибка смен сотрудников: " + err);
     }
   }
 
-  async function salaryPayNow(){
+  function recomputeEmployeeSalaryNet(){
+    if(!currentEmployeeSalaryData) return;
+
+    const bonus = parseNum(el.employeeSalaryBonus?.value) || 0;
+    const advance = parseNum(el.employeeSalaryAdvance?.value) || 0;
+
+    const net = Math.round((
+      (currentEmployeeSalaryData.salaryAccrued || 0)
+      + bonus
+      - advance
+      - (currentEmployeeSalaryData.corporateTaken || 0)
+      - (currentEmployeeSalaryData.alreadyPaid || 0)
+    ) * 100) / 100;
+
+    if (el.employeeSalaryNet) el.employeeSalaryNet.value = String(net);
+  }
+
+  async function employeeSalaryPay(){
     try{
-      if (!currentEmployeeSalary) {
-        alert("Сначала загрузите сотрудника.");
+      if(!currentEmployeeSalaryData){
+        alert("Сначала нажми «Показать».");
         return;
       }
-      const amount = parseNum(el.salaryToPay?.value || "0");
-      if (!Number.isFinite(amount) || amount <= 0) {
-        alert("Нет суммы к выдаче.");
+
+      const employee = currentEmployeeSalaryData.employee;
+      const amount = parseNum(el.employeeSalaryNet?.value);
+      const note = String(el.employeeSalaryNote?.value || "").trim() || "Зарплата";
+
+      if(!Number.isFinite(amount) || amount <= 0){
+        alert("Сумма к выдаче должна быть больше 0.");
         return;
       }
-      const bonus = parseNum(el.salaryBonus?.value || "0") || 0;
-      const note = String(el.salaryNote?.value || "").trim() || `Выплата за ${el.shiftYm?.value || thisYm()}`;
+
       await apiPost({
         path: "salaryPay",
-        employee: currentEmployeeSalary.employee,
+        employee,
         amount,
-        note: `${note}; bonus=${bonus}`
+        note
       });
-      alert(`Выплата записана: ${money(amount)} GEL`);
+
+      alert("Выплата записана ✅");
       await adminEmployeeShifts();
-    } catch(err) {
+    }catch(err){
       alert("Ошибка выплаты: " + err);
     }
   }
@@ -1263,12 +1321,18 @@
 
   if (el.refreshBtn) el.refreshBtn.addEventListener("click", refreshState);
 
-  if (el.adminDayBtn) el.adminDayBtn.addEventListener("click", ()=>{ if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "none"; adminDay(); });
-  if (el.adminMonthBtn) el.adminMonthBtn.addEventListener("click", ()=>{ if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "none"; adminMonth(); });
-  if (el.adminEmpBtn) el.adminEmpBtn.addEventListener("click", ()=>{ if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "none"; adminCorpByEmp(); });
-  if (el.adminInvBtn) el.adminInvBtn.addEventListener("click", ()=>{ if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "none"; adminInventory(); });
+  if (el.adminDayBtn) el.adminDayBtn.addEventListener("click", adminDay);
+  if (el.adminMonthBtn) el.adminMonthBtn.addEventListener("click", adminMonth);
+  if (el.adminEmpBtn) el.adminEmpBtn.addEventListener("click", adminCorpByEmp);
+  if (el.adminInvBtn) el.adminInvBtn.addEventListener("click", adminInventory);
   if (el.adminStopsBtn) el.adminStopsBtn.addEventListener("click", adminStops);
-  if (el.adminShiftsBtn) el.adminShiftsBtn.addEventListener("click", ()=>{ if (el.employeeShiftPanel) el.employeeShiftPanel.style.display = "block"; if (el.adminThead) el.adminThead.innerHTML=''; if (el.adminTbody) el.adminTbody.innerHTML=''; });
+  if (el.adminEmployeeShiftsBtn) el.adminEmployeeShiftsBtn.addEventListener("click", adminEmployeeShifts);
+  if (el.employeeSalaryShowBtn) el.employeeSalaryShowBtn.addEventListener("click", adminEmployeeShifts);
+  if (el.employeeSalaryPayBtn) el.employeeSalaryPayBtn.addEventListener("click", employeeSalaryPay);
+
+  if (el.employeeSalaryBonus) el.employeeSalaryBonus.addEventListener("input", recomputeEmployeeSalaryNet);
+  if (el.employeeSalaryAdvance) el.employeeSalaryAdvance.addEventListener("input", recomputeEmployeeSalaryNet);
+
   if (el.adminLogoutBtn) el.adminLogoutBtn.addEventListener("click", ()=>{
     sessionStorage.removeItem("banka_admin_password");
     alert("Вышли ✅");
@@ -1277,9 +1341,6 @@
 
   if (el.adminSearch) el.adminSearch.addEventListener("input", ()=>filterAdminTable(el.adminSearch.value));
   if (el.adminExportBtn) el.adminExportBtn.addEventListener("click", exportAdminCsv);
-  if (el.loadEmployeeShiftsBtn) el.loadEmployeeShiftsBtn.addEventListener("click", adminEmployeeShifts);
-  if (el.salaryBonus) el.salaryBonus.addEventListener("input", recalcSalaryToPay);
-  if (el.salaryPayBtn) el.salaryPayBtn.addEventListener("click", salaryPayNow);
 
   (async function init(){
     if (!API_URL || !API_TOKEN){
@@ -1294,22 +1355,13 @@
 
     if (el.adminDate) el.adminDate.value = todayKey();
     if (el.adminYm) el.adminYm.value = thisYm();
-    if (el.shiftYm) el.shiftYm.value = thisYm();
-    if (el.shiftEmployeeSelect) {
-      el.shiftEmployeeSelect.innerHTML = `<option value="">Выберите сотрудника</option>` + EMPLOYEES.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("");
-      if (workerName && EMPLOYEES.includes(workerName)) el.shiftEmployeeSelect.value = workerName;
-    }
+    if (el.employeeSalaryYm) el.employeeSalaryYm.value = thisYm();
 
     try{
       setPayment("cash");
       showScreen("pos");
       await refreshState();
       await handleShiftStartCheck();
-      const shiftRecordKey = `banka_shift_recorded_${CFG.cityKey || "city"}_${todayKey()}`;
-      if (!sessionStorage.getItem(shiftRecordKey)) {
-        await apiPost({ path: "openShift", employee: workerName });
-        sessionStorage.setItem(shiftRecordKey, "1");
-      }
       await refreshState();
     }catch(err){
       alert("Init error: " + err);
